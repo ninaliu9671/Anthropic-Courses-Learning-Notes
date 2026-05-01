@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git 学习笔记 - 理清核心概念</title>
+    <link href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a5f;
+            --primary-light: #2d5a8f;
+            --accent: #c17d4a;
+            --accent-light: #d49968;
+            --bg: #fdfcfa;
+            --bg-card: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #4a5568;
+            --text-muted: #6b7280;
+            --border: #d4c5b9;
+            --code-bg: #2d3748;
+            
+            --font-serif: 'Literata', serif;
+            --font-sans: 'Source Sans 3', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-serif);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            font-size: 17px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 30px;
+        }
+        
+        /* 标题样式 */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-weight: 400;
+        }
+        
+        /* 章节标题 */
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 50px 0 25px;
+            border-left: 5px solid var(--accent);
+            padding-left: 20px;
+        }
+        
+        h2::before {
+            content: attr(data-chapter);
+            display: block;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-light);
+            margin: 35px 0 15px;
+        }
+        
+        h3::before {
+            content: attr(data-section);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-light);
+            margin-right: 10px;
+        }
+        
+        h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 25px 0 12px;
+        }
+        
+        h4::before {
+            content: attr(data-subsection);
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-right: 8px;
+        }
+        
+        /* 引言 */
+        .intro {
+            background: linear-gradient(135deg, #fff9f0 0%, #ffffff 100%);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 35px;
+            margin: 40px 0;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.08);
+        }
+        
+        .intro h3 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+        }
+        
+        .intro h3::before {
+            content: '';
+            margin: 0;
+        }
+        
+        .intro-section {
+            margin: 20px 0;
+        }
+        
+        .intro-section strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* 思维导图 */
+        .mindmap {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            margin: 40px 0;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.08);
+        }
+        
+        .mindmap h3 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .mindmap h3::before {
+            content: '';
+        }
+        
+        .mindmap-content {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            line-height: 1.8;
+            overflow-x: auto;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            color: var(--primary);
+        }
+        
+        /* 内容块 */
+        .content-section {
+            margin: 30px 0;
+        }
+        
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+        
+        /* 强调框 */
+        .highlight {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+            border-left: 4px solid var(--accent);
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+        
+        .highlight strong {
+            color: var(--primary);
+        }
+        
+        /* 关键概念卡片 */
+        .concept-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(30, 58, 95, 0.06);
+        }
+        
+        .concept-card h4 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--accent-light);
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+        
+        .concept-card h4::before {
+            content: '📌 ';
+        }
+        
+        /* 对比表格 */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .comparison-item {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .comparison-item h4 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--accent-light);
+            padding-bottom: 8px;
+        }
+        
+        /* 实践案例 */
+        .practice {
+            background: linear-gradient(135deg, #e8f4f8 0%, #ffffff 100%);
+            border-left: 4px solid var(--primary-light);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+        
+        .practice h4 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+        
+        .practice h4::before {
+            content: '🔧 ';
+        }
+        
+        /* 警告框 */
+        .warning {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+            border-left: 4px solid #e53e3e;
+            padding: 20px 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+        }
+        
+        .warning::before {
+            content: '⚠️ ';
+            font-size: 1.2em;
+        }
+        
+        /* 列表 */
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 35px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        /* 代码 */
+        code {
+            font-family: var(--font-mono);
+            background: var(--code-bg);
+            color: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: var(--code-bg);
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border: 2px solid var(--primary);
+            font-size: 0.9em;
+        }
+        
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        /* 图表 */
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid var(--border);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.85em;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        /* 术语表 */
+        .term {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+        }
+        
+        .term dt {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .term dd {
+            color: var(--text-secondary);
+            margin-left: 0;
+        }
+        
+        /* 步骤列表 */
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+        
+        .steps li {
+            counter-increment: step;
+            padding: 15px 15px 15px 50px;
+            margin: 15px 0;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-family: var(--font-sans);
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 1.6rem; }
+            .comparison { grid-template-columns: 1fr; }
+            .container { padding: 30px 20px; }
+        }
+        
+        /* 回到顶部 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+            opacity: 0;
+            transition: all 0.3s;
+            font-size: 1.5rem;
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+        }
+        
+        .back-to-top:hover {
+            background: var(--accent);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Git 学习笔记</h1>
+            <p class="subtitle">理清核心概念 — 从困惑到清晰的学习旅程</p>
+        </header>
+
+        <!-- 引言 -->
+        <div class="intro">
+            <h3>📖 为什么写这份笔记？</h3>
+            
+            <div class="intro-section">
+                <strong>学习背景：</strong>
+                <p>我最早听说过 GitHub，用一些“绝对安全”的方式使用过（参照别人写的操作指南点点点），但一直没深入了解。最近开始尝试 vibe coding，在项目开发过程中，发现本地文件夹里出现了一个 <code>.git</code> 文件夹，让我意识到 Git 不仅仅是 GitHub 的事。</p>
+            </div>
+            
+            <div class="intro-section">
+                <strong>遇到的困惑：</strong>
+                <p>在用 AI Agent（Claude Code、Codex、Cursor）帮我 coding 的过程中，遇到了很多混乱的情况：</p>
+                <ul>
+                    <li>不同版本的代码冲突</li>
+                    <li>出现 "未暂存文件"、"未追踪文件" 等概念，不知道是什么</li>
+                    <li>Worktree 文件夹突然出现，不知道该怎么处理</li>
+                    <li>多个 Agent 同时工作后，代码库变得一团糟</li>
+                </ul>
+            </div>
+            
+            <div class="intro-section">
+                <strong>学习契机：</strong>
+                <p>今天学习 Claude Code 101 课程时，讲到了 "Explore → Plan → Code → Commit" 工作流。其中提到的 <strong>commit</strong> 概念，正好和我之前遇到的困惑有关。我决定系统性地理清这些概念。</p>
+            </div>
+            
+            <div class="intro-section">
+                <strong>这份笔记的目标：</strong>
+                <ol>
+                    <li><strong>理清概念</strong> — Git 的工作原理是什么？那些术语到底什么意思？</li>
+                    <li><strong>弄懂关系</strong> — Git、GitHub、Branch、Worktree 之间是什么关系？</li>
+                    <li><strong>解决问题</strong> — 遇到实践中的混乱情况，应该怎么处理？</li>
+                    <li><strong>建立工作流</strong> — 如何正确使用这些工具，避免不必要的问题？</li>
+                </ol>
+            </div>
+            
+            <div class="intro-section">
+                <strong>适合谁看：</strong>
+                <p>这份笔记<strong>不是 Git 完整教程</strong>，而是我个人的学习记录。适合那些：</p>
+                <ul>
+                    <li>用过 Git 命令（add、commit、push），但不懂背后原理</li>
+                    <li>遇到过版本冲突、文件状态混乱等问题</li>
+                    <li>想理解 Git 的核心机制，而不只是记命令</li>
+                </ul>
+                <p>如果你是完全的小白，建议结合实践来看这份笔记。</p>
+                <p>如果笔记中有理解或表述不当的地方，也欢迎交流指教~</p>
+            </div>
+        </div>
+
+        <!-- 思维导图 -->
+        <div class="mindmap">
+            <h3>🗺️ 知识地图 — 一眼看懂整体结构</h3>
+<p style="text-align: center; color: var(--text-secondary); font-size: 0.95em; margin-bottom: 25px; padding: 0 40px; line-height: 1.6;">
+    <strong>💡 阅读提示：</strong>本文使用<strong>"历史编年"类比系统</strong>来解释 Git 概念。你会看到"历史学家"、"时间线"、"历史档案馆"等比喻，它们都对应具体的 Git 术语。如果某个比喻让你困惑，可以查看文末的<a href="#appendix" style="color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent);">术语类比对照表</a>。
+</p>
+
+            <div class="mindmap-content">
+<pre>
+Git 核心概念框架
+│
+├─ 第1章 Git 是什么？
+│   ├─ 本质：分布式版本控制系统（时光机）
+│   ├─ 解决的问题：手动备份 vs 自动版本管理
+│   └─ 与 GitHub 的关系：本地工具 vs 云端平台
+│
+├─ 第2章 Git 的核心机制
+│   ├─ 2.1 .git 仓库 — 历史档案馆
+│   │   ├─ objects/ — 历史快照存储（压缩）
+│   │   ├─ refs/heads/ — 时间线标记（Branch）
+│   │   └─ index — 待发表区（暂存区）
+│   ├─ 2.2 三区域模型
+│   │   ├─ 工作区 → 暂存区 → 仓库
+│   │   └─ 历史学家的写作台 → 待发表区 → 历史卷宗
+│   └─ 2.3 文件状态流转
+│       └─ Untracked → Staged → Committed → Modified
+│
+├─ 第3章 时间线的秘密：Branch
+│   ├─ 3.1 Branch = 时间线标记（不是副本）
+│   ├─ 3.2 Commit 链 — 历史事件的母子关系
+│   ├─ 3.3 Branch 文件 — 40字符的指针
+│   └─ 3.4 设计哲学 — 为什么这么设计？
+│
+├─ 第4章 工作流程
+│   ├─ 4.1 基本流程：编辑 → add → commit
+│   ├─ 4.2 为什么需要暂存区？
+│   ├─ 4.3 版本回退（3种方式）
+│   └─ 4.4 Merge — 合并平行时间线
+│
+├─ 第5章 Worktree — 同时研究多条时间线
+│   ├─ 5.1 Worktree 是什么
+│   ├─ 5.2 何时使用
+│   ├─ 5.3 操作流程
+│   └─ 5.4 常见疑问解答
+│
+├─ 第6章 Git 与 GitHub
+│   ├─ 6.1 GitHub 的定位
+│   ├─ 6.2 本地 vs 云端
+│   └─ 6.3 为什么本地也能用 git 命令
+│
+└─ 第7章 实践问题集
+    ├─ 7.1 AI Agent 陷入死循环
+    ├─ 7.2 多 Agent 协作混乱
+    └─ 7.3 Claude Code 操作指南
+
+核心比喻系统：历史编年
+├─ .git 仓库 = 历史档案馆
+├─ Commit = 历史快照
+├─ Branch = 时间线标记
+├─ Worktree = 研究室（查看不同时间线）
+└─ Merge = 合并平行时间线
+</pre>
+            </div>
+        </div>
+
+        <!-- 第1章 -->
+        <section id="chapter1">
+            <h2 data-chapter="第1章">Git 是什么？</h2>
+            
+            <div class="content-section">
+                <h3 data-section="1.1">本质：分布式版本控制系统</h3>
+                
+                <p><strong>Git</strong> 是一个<strong>分布式版本控制系统</strong>（Distributed Version Control System）。用人话说，它就是一台"时光机"，可以记录文件的所有历史版本，让你随时回到过去。</p>
+                
+                <div class="highlight">
+                    <strong>核心理解：</strong> Git 不是"备份工具"，而是"历史记录系统"。它不是简单地复制文件，而是记录每一次修改的"快照"。
+                </div>
+                
+                <div class="concept-card">
+                    <h4>用历史编年的方式理解</h4>
+                    <p>想象你在写一部历史：</p>
+                    <ul>
+                        <li><strong>没有 Git：</strong> 你手动创建 "历史_v1.docx"、"历史_v2.docx"、"历史_final.docx"、"历史_真的final.docx" — 混乱！</li>
+                        <li><strong>有了 Git：</strong> 你只有一个 "历史.docx"，但 Git 在背后记录了每一个版本（公元100年、200年、300年...），可以随时查看或回退到任何时间点。</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="1.2">解决的问题：时光机 vs 手动备份</h3>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>❌ 没有版本控制</h4>
+                        <ul>
+                            <li>手动复制文件夹（project_v1, v2, v3...）</li>
+                            <li>不知道每个版本改了什么</li>
+                            <li>想回退很困难</li>
+                            <li>多人协作时容易冲突</li>
+                            <li>占用大量存储空间</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <h4>✅ 有 Git</h4>
+                        <ul>
+                            <li>只有一个文件夹，所有历史在 .git 里</li>
+                            <li>每次修改都有记录（commit message）</li>
+                            <li>一条命令回退到任何版本</li>
+                            <li>多人协作有成熟的合并机制</li>
+                            <li>压缩存储，节省空间</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="1.3">与 GitHub 的关系</h3>
+                
+                <p>我第一次听说的是 <strong>GitHub</strong>，但它和 Git 不是一回事。</p>
+                
+                <div class="concept-card">
+                    <h4>Git 和 GitHub 的关系</h4>
+                    <ul>
+                        <li><strong>Git：</strong> 本地的版本控制工具（2005年发明）</li>
+                        <li><strong>GitHub：</strong> 基于 Git 的云端协作平台（2008年上线）</li>
+                    </ul>
+                    
+                    <p style="margin-top: 15px;"><strong>类比理解：</strong></p>
+                    <ul>
+                        <li>Git = 你电脑上的文档编辑器（Word）</li>
+                        <li>GitHub = 云端的文档协作平台（Google Docs）</li>
+                    </ul>
+                    
+                    <p style="margin-top: 15px;"><strong>关键区别：</strong></p>
+                    <ul>
+                        <li>Git 可以在<strong>完全离线</strong>的情况下工作</li>
+                        <li>GitHub 需要网络，用于<strong>团队协作</strong>和<strong>云端备份</strong></li>
+                        <li>GitHub 应用了 Git 的核心机制，只是把存储位置从本地变成了云端</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight">
+                    <strong>所以：</strong> 当你在本地文件夹看到 <code>.git</code> 时，说明这个项目正在用 Git 进行版本管理 — 即使你没连接 GitHub。
+                </div>
+            </div>
+        </section>
+
+        <!-- 第2章 -->
+        <section id="chapter2">
+            <h2 data-chapter="第2章">Git 的核心机制</h2>
+            
+            <div class="content-section">
+                <h3 data-section="2.1">.git 仓库 — 历史档案馆</h3>
+                
+                <p>当你在项目文件夹里看到 <code>.git</code> 文件夹时，这就是 Git 的"历史档案馆"。所有的版本历史都存储在这里。</p>
+                
+                <div class="warning">
+                    <strong>重要理解：</strong> 你永远不在 .git 里工作！.git 是一个数据库，不是工作区。你看到和编辑的文件在工作区（项目文件夹），而 .git 只负责记录历史。
+                </div>
+                
+                <h4 data-subsection="2.1.1">.git 文件夹的真实结构</h4>
+                
+                <div class="diagram">
+<pre>
+你的项目/
+├── src/              ← 工作区（你在这里写代码）
+├── index.html        ← 工作区
+├── README.md         ← 工作区
+└── .git/             ← 仓库（Git 的历史档案馆）
+    ├── objects/      ← 所有历史快照（压缩存储）
+    ├── refs/heads/   ← 时间线标记（Branch）
+    │   ├── main      ← 主时间线（一个文本文件）
+    │   └── feature   ← 分支时间线（一个文本文件）
+    ├── index         ← 暂存区（待发表区）
+    └── config        ← 配置信息
+</pre>
+                </div>
+                
+                <h4 data-subsection="2.1.2">objects/ — 历史快照存储</h4>
+                
+                <p><code>objects/</code> 文件夹存储了所有历史版本的文件内容（压缩格式）。每个 commit 就是一个完整的项目快照。</p>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>objects/ = 历史卷宗柜</strong></p>
+                    <p>每个抽屉里存放一个时间点的完整历史记录（公元100年、200年、300年...）。这些记录是压缩存储的，节省空间。</p>
+                </div>
+                
+                <h4 data-subsection="2.1.3">refs/heads/ — 时间线标记</h4>
+                
+                <p><code>refs/heads/</code> 文件夹存储所有的 Branch（分支）。每个 Branch 只是一个<strong>几十字节的小文本文件</strong>，里面记录着它指向哪个 commit。</p>
+                
+                <div class="practice">
+                    <h4>实际验证</h4>
+                    <p>打开 <code>.git/refs/heads/main</code> 文件，你会看到只有一行：</p>
+                    <pre><code>abc123def456789...（40个字符的 commit ID）</code></pre>
+                    <p>这就是"时间线标记"的真面目 — 它只是指向某个历史快照的指针。</p>
+                </div>
+                
+                <h4 data-subsection="2.1.4">index — 待发表区</h4>
+                
+                <p><code>index</code> 文件就是"暂存区"，记录了哪些文件准备被提交到下一个历史快照。</p>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="2.2">三区域模型</h3>
+                
+                <p>Git 的工作流程涉及三个"区域"，理解这三个区域是掌握 Git 的关键。</p>
+                
+                <div class="diagram">
+<pre>
+工作区 (Working Directory)
+   ↓ git add
+暂存区 (Staging Area)
+   ↓ git commit
+仓库 (Repository)
+</pre>
+                </div>
+                
+                <h4 data-subsection="2.2.1">工作区 — 历史学家的写作台</h4>
+                
+                <ul>
+                    <li><strong>位置：</strong> 你能看到和编辑的文件（项目文件夹）</li>
+                    <li><strong>作用：</strong> 实际写代码、修改文件的地方</li>
+                    <li><strong>特点：</strong> 可以随意修改，Git 会检测到变化但不会自动记录</li>
+                </ul>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>工作区 = 历史学家的写作台</strong></p>
+                    <p>你在这里撰写新的历史记录、修改已有的内容。这些修改还没有正式"发表"，只是草稿。</p>
+                </div>
+                
+                <h4 data-subsection="2.2.2">暂存区 — 待发表区</h4>
+                
+                <ul>
+                    <li><strong>位置：</strong> .git/index 文件（你看不到实际内容）</li>
+                    <li><strong>作用：</strong> 标记准备提交的文件</li>
+                    <li><strong>特点：</strong> 可以检查、调整，确认无误后再正式提交</li>
+                </ul>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>暂存区 = 待发表区</strong></p>
+                    <p>你把撰写好的历史内容放入"待发表区"，可以校对、修订，确认无误后再正式载入史册。</p>
+                </div>
+                
+                <h4 data-subsection="2.2.3">仓库 — 历史卷宗</h4>
+                
+                <ul>
+                    <li><strong>位置：</strong> .git/objects/ 文件夹（压缩存储）</li>
+                    <li><strong>作用：</strong> "时光机数据库"，永久记录所有历史版本</li>
+                    <li><strong>特点：</strong> 一旦提交，就永久保存，可以随时回退</li>
+                </ul>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>仓库 = 历史卷宗</strong></p>
+                    <p>正式发表的历史记录都保存在这里，每个时间点都是完整的快照，可以随时查阅。</p>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="2.3">文件状态流转</h3>
+                
+                <p>文件在这三个区域之间流转，会经历不同的状态。</p>
+                
+                <div class="diagram">
+<pre>
+Untracked (未追踪)
+    ↓ git add
+Staged (已暂存)
+    ↓ git commit
+Committed (已提交)
+    ↓ 继续修改
+Modified (已修改/未暂存)
+    ↓ git add
+Staged (已暂存)
+</pre>
+                </div>
+                
+                <dl class="term">
+                    <dt>Untracked（未追踪）</dt>
+                    <dd>新创建的文件，Git 还不认识它。就像新写的历史草稿，还没提交给编辑部。</dd>
+                </dl>
+                
+                <dl class="term">
+                    <dt>Staged（已暂存）</dt>
+                    <dd>用 <code>git add</code> 标记的文件，在暂存区等待提交。就像放入"待发表区"的历史稿件。</dd>
+                </dl>
+                
+                <dl class="term">
+                    <dt>Committed（已提交）</dt>
+                    <dd>用 <code>git commit</code> 正式保存的文件，在仓库里永久记录。就像正式载入史册的历史事件。</dd>
+                </dl>
+                
+                <dl class="term">
+                    <dt>Modified（已修改/未暂存）</dt>
+                    <dd>已有文件被修改了，但还没 <code>git add</code>。就像修改了已发表的历史，但还没提交修订版。</dd>
+                </dl>
+                
+                <div class="highlight">
+                    <strong>关键理解：</strong>
+                    <ul>
+                        <li><strong>Untracked：</strong> Git 不知道这个文件的存在</li>
+                        <li><strong>Modified：</strong> Git 知道这个文件，但检测到它被修改了</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第3章 -->
+        <section id="chapter3">
+            <h2 data-chapter="第3章">时间线的秘密：Branch</h2>
+            
+            <div class="content-section">
+                <h3 data-section="3.1">Branch = 时间线标记（不是副本）</h3>
+                
+                <p>Branch（分支）是 Git 中最容易被误解的概念。我原来以为"创建分支 = 复制整个项目"，但这是<strong>错误的</strong>。</p>
+                
+                <div class="warning">
+                    <strong>我的误解：</strong> Branch 是复制整个项目，所以创建10个 Branch 会占用10倍空间。<br>
+                    <strong>实际情况：</strong> Branch 只是一个"时间线标记"，创建10个 Branch 只增加几百字节。
+                </div>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>Branch = 历史时间线的标记</strong></p>
+                    <p>想象历史有多条时间线（正史、平行宇宙）：</p>
+                    <ul>
+                        <li><strong>main 分支 = "正史"标记</strong> — 指向当前的历史年代（比如公元2026年）</li>
+                        <li><strong>feature 分支 = "平行宇宙"标记</strong> — 指向另一条时间线的某个时间点</li>
+                    </ul>
+                    <p>这些标记只是"书签"，不是复制整部历史。</p>
+                </div>
+                
+                <div class="practice">
+                    <h4>空间占用验证</h4>
+                    <p>假设你的项目有 1GB 的文件：</p>
+                    <ul>
+                        <li><strong>.git/objects/（所有历史快照）：</strong> 500 MB</li>
+                        <li><strong>.git/refs/heads/main（Branch 文件）：</strong> 40 字节</li>
+                        <li><strong>创建 10 个 Branch：</strong> 只增加 400 字节（10 × 40）</li>
+                    </ul>
+                    <p><strong>如果是复制：</strong> 应该增加 10 GB！</p>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="3.2">Commit 链 — 历史事件的母子关系</h3>
+                
+                <p>每个 Commit（提交）不是孤立的，它们通过"母子关系"连接成一条链。</p>
+                
+                <div class="diagram">
+<pre>
+main 分支 ──→ Commit 4（最新）
+              ↓ 母指针
+            Commit 3
+              ↓ 母指针
+            Commit 2
+              ↓  母指针
+            Commit 1（初始）
+</pre>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>数据结构解析</h4>
+                    <ul>
+                        <li><strong>Branch：</strong> 只知道"我指向哪个最新的 Commit"</li>
+                        <li><strong>Commit：</strong> 知道"我的母节点是谁"</li>
+                        <li><strong>查找历史：</strong> 从 Branch 指向的 Commit 开始，沿着母指针往回走</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight">
+                    <strong>为什么这么设计？</strong>
+                    <ul>
+                        <li>Branch 不需要记住所有 Commit（节省空间）</li>
+                        <li>只要记住最新一个，顺着"母指针"就能找到全部历史</li>
+                        <li>创建新 Branch 只需创建一个新指针（瞬间完成）</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="3.3">Branch 文件的真实内容</h3>
+                
+                <p>让我们看看 Branch 文件到底是什么：</p>
+                
+                <div class="practice">
+                    <h4>打开 .git/refs/heads/main 文件</h4>
+                    <pre><code>abc123def456789ghi012jkl345mno678pqr901st</code></pre>
+                    <p>这就是全部内容 — <strong>40个字符的 commit ID</strong>。</p>
+                </div>
+                
+                <p>这40个字符是什么？它是一个 <strong>SHA-1 哈希值</strong>，指向 .git/objects/ 里的某个历史快照。</p>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>Branch 文件 = 历史年代标记</strong></p>
+                    <p>就像你在历史书上贴了一个书签，上面写着"公元2026年"。这个书签本身只占一张纸的空间，但它能帮你快速找到那个年代的所有历史记录。</p>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="3.4">设计哲学 — 为什么这么设计？</h3>
+                
+                <p><strong>Q：为什么不让 Commit 记住自己属于哪个 Branch？</strong></p>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>❌ 如果 Commit 记住 Branch</h4>
+                        <ul>
+                            <li>一个 Commit 可能属于多个 Branch（复杂）</li>
+                            <li>创建 Branch 需要修改历史所有 Commit（低效）</li>
+                            <li>删除 Branch 需要遍历所有 Commit 更新记录（危险）</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <h4>✅ Branch 指向 Commit 的优势</h4>
+                        <ul>
+                            <li>创建 Branch：瞬间完成（只需创建一个指针）</li>
+                            <li>删除 Branch：只需移除指针（Commit 还在）</li>
+                            <li>切换 Branch：快速（只需移动指针）</li>
+                            <li>Commit 数据：永远不变（稳定）</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="highlight">
+                    <strong>每次 Commit，Branch 文件会自动更新：</strong>
+                    <ol class="steps">
+                        <li>你运行 <code>git commit</code></li>
+                        <li>Git 创建新的 Commit 对象（保存在 .git/objects/）</li>
+                        <li>Git 更新 .git/refs/heads/main 文件，把里面的 commit ID 改成新的</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第4章 -->
+        <section id="chapter4">
+            <h2 data-chapter="第4章">工作流程</h2>
+            
+            <div class="content-section">
+                <h3 data-section="4.1">基本流程：编辑 → add → commit</h3>
+                
+                <p>Git 的基本工作流程很简单，但每一步都有其意义。</p>
+                
+                <div class="diagram">
+<pre>
+1. 工作区编辑文件
+   ↓
+2. git add（选择要提交的文件）
+   ↓
+3. 暂存区（检查、调整）
+   ↓
+4. git commit（拍照保存）
+   ↓
+5. 仓库（永久记录）
+</pre>
+                </div>
+                
+                <div class="practice">
+                    <h4>实际例子</h4>
+                    <p>场景：你同时修改了5个文件，但想分两次提交</p>
+                    <pre><code># 第一次提交（登录功能）
+git add login.js auth.js
+git commit -m "feat: add login feature"
+
+# 第二次提交（首页优化）
+git add home.js style.css utils.js
+git commit -m "refactor: optimize homepage"</code></pre>
+                    <p><strong>为什么分两次？</strong></p>
+                    <ul>
+                        <li><strong>原子性：</strong> 每个 commit 只做一件事</li>
+                        <li><strong>可读性：</strong> 历史记录清晰</li>
+                        <li><strong>可回退：</strong> 出问题只回退相关部分</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="4.2">为什么需要暂存区？</h3>
+                
+                <p><strong>Q：为什么不能直接从工作区 commit，而需要先 git add？</strong></p>
+                
+                <div class="highlight">
+                    <strong>核心答案：</strong> 暂存区提供了一个"检查和调整"的缓冲区，让你能更精细地控制每次提交的内容。
+                </div>
+                
+                <h4 data-subsection="4.2.1">原因1：可检查性</h4>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>没有暂存区</h4>
+                        <p>改了10个文件 → 直接 commit → 发现有个文件不该提交 → 太晚了！</p>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <h4>有暂存区</h4>
+                        <p>改了10个文件 → git add 5个 → git diff --cached（检查暂存区）→ 发现问题 → git reset 某个文件 → 重新 add → 再 commit</p>
+                    </div>
+                </div>
+                
+                <h4 data-subsection="4.2.2">原因2：部分提交</h4>
+                
+                <div class="practice">
+                    <h4>场景：一个文件改了100行，只想提交前50行</h4>
+                    <pre><code>login.js:
+- 前50行：添加登录功能 ✅
+- 后50行：调试代码 ❌（不想提交）
+
+# 解决方案
+git add -p login.js  # 选择只添加前50行
+git commit</code></pre>
+                    <p><strong>如果没有暂存区：</strong> 只能提交整个文件，或者手动删除后50行再提交（麻烦！）</p>
+                </div>
+                
+                <h4 data-subsection="4.2.3">原因3：原子性保证</h4>
+                
+                <div class="concept-card">
+                    <h4>暂存区 = 待发表区</h4>
+                    <p><strong>历史编年类比：</strong></p>
+                    <ul>
+                        <li><strong>工作区 = 写作台</strong> — 所有草稿（修改的文件）</li>
+                        <li><strong>暂存区 = 待发表区</strong> — 你选中的稿件</li>
+                        <li><strong>仓库 = 历史卷宗</strong> — 正式发表后的记录</li>
+                    </ul>
+                    <p><strong>你可以：</strong></p>
+                    <ul>
+                        <li>从写作台拿稿件到待发表区（git add）</li>
+                        <li>从待发表区拿出不要的（git reset）</li>
+                        <li>确认后正式发表（git commit）</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="4.3">版本回退</h3>
+                
+                <p>Git 的"时光机"功能体现在版本回退上。有三种回退方式：</p>
+                
+                <div class="diagram">
+<pre>
+你的提交历史：
+C3 (最新) ← HEAD
+ ↓
+C2
+ ↓
+C1
+ ↓
+C0 (最早)
+</pre>
+                </div>
+                
+                <h4 data-subsection="4.3.1">方式1：软回退（保留代码）</h4>
+                
+                <pre><code>git reset --soft C2</code></pre>
+                
+                <p><strong>结果：</strong></p>
+                <ul>
+                    <li>代码还在工作区（C3的修改都还在）</li>
+                    <li>只是"取消"了C3这次提交</li>
+                    <li>可以重新修改后再 commit</li>
+                </ul>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p>就像历史学家说："我要撤回刚才发表的那段历史（C3），重新修改后再发表。"内容还在写作台上，只是没有正式载入史册。</p>
+                </div>
+                
+                <h4 data-subsection="4.3.2">方式2：硬回退（彻底删除）</h4>
+                
+                <pre><code>git reset --hard C2</code></pre>
+                
+                <p><strong>结果：</strong></p>
+                <ul>
+                    <li>代码回到C2的样子</li>
+                    <li>C3的所有修改都消失了（危险！）</li>
+                </ul>
+                
+                <div class="warning">
+                    <strong>警告：</strong> 硬回退会<strong>永久丢失</strong>C3的修改！使用前务必确认。
+                </div>
+                
+                <h4 data-subsection="4.3.3">方式3：查看历史版本（不修改）</h4>
+                
+                <pre><code>git checkout C1</code></pre>
+                
+                <p><strong>结果：</strong></p>
+                <ul>
+                    <li>你能看到C1时的代码</li>
+                    <li>但没有修改历史</li>
+                    <li>像"时光旅行"去参观</li>
+                </ul>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p>就像历史学家翻开史册，查阅"公元100年"的历史记录，但不修改它。看完后可以回到当前年代（git checkout main）。</p>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="4.4">Merge — 合并平行时间线</h3>
+                
+                <p>当你有多个 Branch（时间线）时，最终需要把它们合并到一起。</p>
+                
+                <div class="diagram">
+<pre>
+main:  C1 ← C2 ← C3 ← C4
+feature: C1 ← C2 ← C3 ← C5 ← C6
+
+git merge feature（在 main 分支执行）
+    ↓
+main:  C1 ← C2 ← C3 ← C4 ←─┐
+                           ├─ C7（merge commit）
+feature: C1 ← C2 ← C3 ← C5 ← C6
+</pre>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>Merge = 合并平行时间线的历史</strong></p>
+                    <p>想象历史有两条时间线：</p>
+                    <ul>
+                        <li><strong>正史（main）：</strong> C1 → C2 → C3 → C4</li>
+                        <li><strong>平行宇宙（feature）：</strong> C1 → C2 → C3 → C5 → C6</li>
+                    </ul>
+                    <p>Merge 就是把"平行宇宙"中发生的事件（C5、C6）合并到"正史"中，创建一个新的历史节点（C7）记录这次合并。</p>
+                </div>
+                
+                <div class="highlight">
+                    <strong>为什么需要 Merge？</strong>
+                    <p>虽然所有 Commit 都在同一个 .git 里，但它们属于不同的"时间线"（Branch）。Merge 的作用是把两条时间线的修改合并到一起。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第5章 -->
+        <section id="chapter5">
+            <h2 data-chapter="第5章">Worktree — 同时研究多条时间线</h2>
+            
+            <div class="content-section">
+                <h3 data-section="5.1">什么是 Worktree</h3>
+                
+                <p>Worktree 是我最初感到困惑的概念之一。在用 Claude Code 时，突然出现了 <code>worktree-login/</code> 这样的文件夹，我不知道它是什么。</p>
+                
+                <div class="highlight">
+                    <strong>核心理解：</strong> Worktree = Branch 的物理"研究室"。它让你可以同时在不同的文件夹里查看和编辑不同的 Branch，而不需要来回切换。
+                </div>
+                
+                <div class="concept-card">
+                    <h4>历史编年类比</h4>
+                    <p><strong>Worktree = 不同的历史研究室</strong></p>
+                    <p>想象你是历史学家，需要同时研究两条时间线：</p>
+                    <ul>
+                        <li><strong>主研究室（主文件夹）：</strong> 研究"正史"（main 分支）</li>
+                        <li><strong>分研究室（worktree 文件夹）：</strong> 研究"平行宇宙"（feature 分支）</li>
+                    </ul>
+                    <p>两个研究室共享同一个历史档案馆（.git），但可以同时打开不同的历史卷轴（Branch）。</p>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="5.2">Worktree vs 传统 Branch</h3>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>传统 Branch（切换方式）</h4>
+                        <pre><code>项目文件夹/
+├── src/
+└── .git/
+
+git checkout feature
+→ 文件夹内容瞬间变化
+→ 同一个研究室，换不同的历史卷轴</code></pre>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <h4>Worktree（并行方式）</h4>
+                        <pre><code>主项目/
+├── src/
+└── .git/
+
+worktree-feature/
+├── src/
+└── (指向同一个 .git)
+
+→ 两个独立文件夹
+→ 两个研究室，同时研究不同的历史</code></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="5.3">何时使用 Worktree</h3>
+                
+                <div class="practice">
+                    <h4>场景1：不需要 Worktree</h4>
+                    <p>你在做一个功能，做完再做下一个</p>
+                    <p><strong>建议：</strong> 不开 Worktree，直接在主文件夹工作</p>
+                </div>
+                
+                <div class="practice">
+                    <h4>场景2：需要 Worktree</h4>
+                    <p>功能A 开发中，卡住了；你想先做功能B，但不想影响功能A的进度</p>
+                    <p><strong>建议：</strong> 开 Worktree！</p>
+                    <ul>
+                        <li>主文件夹：功能A 的半成品（继续保留）</li>
+                        <li>Worktree-1：功能B 的独立空间（互不干扰）</li>
+                    </ul>
+                </div>
+                
+                <div class="warning">
+                    <strong>注意冲突：</strong> 如果两个 Worktree 都改了同一个文件，合并时会出现冲突，需要手动解决（或让 AI 帮忙）。
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="5.4">Worktree 操作流程</h3>
+                
+                <h4 data-subsection="5.4.1">创建 Worktree</h4>
+                
+                <pre><code>git worktree add worktree-login login-branch</code></pre>
+                
+                <p><strong>发生了什么？</strong></p>
+                <ol class="steps">
+                    <li>Git 创建一个新文件夹（worktree-login/）</li>
+                    <li>从 .git 提取（解压） login 分支的所有文件</li>
+                    <li>两个文件夹指向同一个 .git 数据库</li>
+                </ol>
+                
+                <div class="warning">
+                    <strong>重要：</strong> Worktree 检出（checkout）的是整个项目，不是部分文件！即使你只改一个文件，整个项目结构都会被检出。
+                </div>
+                
+                <h4 data-subsection="5.4.2">在 Worktree 里工作</h4>
+                
+                <pre><code>cd worktree-login/
+# 修改文件
+git add login.js
+git commit -m "feat: add login"</code></pre>
+                
+                <p><strong>这次 commit 保存在哪里？</strong></p>
+                <p>保存在 .git 的 <code>login</code> 分支里，不是 <code>main</code> 分支。</p>
+                
+                <h4 data-subsection="5.4.3">合并回主分支</h4>
+                
+                <pre><code>cd ~/project/  # 回到主文件夹
+git merge login  # 合并 login 分支到 main</code></pre>
+                
+                <h4 data-subsection="5.4.4">删除 Worktree</h4>
+                
+                <pre><code># 方式1：直接删除文件夹
+rm -rf worktree-login/
+
+# 方式2：用 Git 命令删除
+git worktree remove worktree-login</code></pre>
+                
+                <div class="highlight">
+                    <strong>删除 Worktree 后，代码还在吗？</strong>
+                    <ul>
+                        <li><strong>已 git commit：</strong> 代码保存在 .git 的 login 分支里，删除 Worktree 不影响</li>
+                        <li><strong>已 git add 但未 commit：</strong> 暂存区的内容还在 .git 里</li>
+                        <li><strong>只修改了文件，没 git add：</strong> 删除 Worktree = 丢失修改</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="5.5">运行项目时用的是哪个版本？</h3>
+                
+                <div class="practice">
+                    <h4>场景对比</h4>
+                    <pre><code># 场景1：在主文件夹运行
+cd ~/project/
+npm start
+→ 运行主文件夹（main 分支）的代码
+
+# 场景2：在 Worktree 文件夹运行
+cd ~/project/worktree-login/
+npm start
+→ 运行 worktree-login 文件夹的代码
+
+# 可以同时运行！
+→ 主文件夹：localhost:3000
+→ Worktree：  localhost:3001</code></pre>
+                </div>
+                
+                <div class="highlight">
+                    <strong>核心理解：</strong> 运行的永远是工作区的文件！Git 的 commit/暂存区与运行无关。
+                </div>
+            </div>
+        </section>
+
+        <!-- 第6章 -->
+        <section id="chapter6">
+            <h2 data-chapter="第6章">Git 与 GitHub</h2>
+            
+            <div class="content-section">
+                <h3 data-section="6.1">GitHub 的定位</h3>
+                
+                <p>现在回到最初的问题：Git 和 GitHub 到底是什么关系？</p>
+                
+                <div class="concept-card">
+                    <h4>核心关系</h4>
+                    <ul>
+                        <li><strong>Git：</strong> 本地的版本控制工具（本地的历史档案馆）</li>
+                        <li><strong>GitHub：</strong> 应用了 Git 机制的云端协作平台（云端的历史档案馆）</li>
+                    </ul>
+                </div>
+                
+                <p>GitHub 的核心功能就是把 .git 仓库从你的电脑<strong>复制一份到云端</strong>，让团队成员可以共享和协作。</p>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="6.2">本地 Git vs 云端 GitHub</h3>
+                
+                <div class="diagram">
+<pre>
+本地 Git（.git 文件夹）
+    ↕️  git push / git pull
+GitHub（云端仓库）
+</pre>
+                </div>
+                
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>本地 Git</h4>
+                        <ul>
+                            <li>在你的电脑上</li>
+                            <li>不需要网络</li>
+                            <li>只有你能访问</li>
+                            <li>完全独立工作</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-item">
+                        <h4>云端 GitHub</h4>
+                        <ul>
+                            <li>在 GitHub 服务器上</li>
+                            <li>需要网络</li>
+                            <li>团队成员可以访问</li>
+                            <li>用于协作和备份</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="6.3">为什么本地也能用 git 命令</h3>
+                
+                <p>这是我最初的困惑：<strong>为什么我没连 GitHub，本地也能用 git 命令？</strong></p>
+                
+                <div class="highlight">
+                    <strong>答案：</strong> 因为 Git 是本地工具，所有操作（add、commit、branch）都在本地的 .git 文件夹里完成，不需要 GitHub。
+                </div>
+                
+                <p>GitHub 只是一个可选的"云备份+协作"平台。你可以：</p>
+                <ul>
+                    <li>只用 Git，不用 GitHub</li>
+                    <li>用 Git + GitHub（推送到云端）</li>
+                    <li>用 Git + 其他平台（GitLab、Bitbucket）</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 第7章 -->
+        <section id="chapter7">
+            <h2 data-chapter="第7章">实践问题集</h2>
+            
+            <div class="content-section">
+                <h3 data-section="7.1">AI Agent 陷入死循环怎么办</h3>
+                
+                <p>这是我实际遇到的问题：Claude Code 运行了十几个小时，没解决问题，产生了很多"未追踪文件"和"未暂存文件"。</p>
+                
+                <div class="practice">
+                    <h4>发生了什么？</h4>
+                    <ul>
+                        <li>Claude Code 创建了很多临时文件、测试文件</li>
+                        <li>修改了现有文件</li>
+                        <li>但没有完成 git commit（因为任务没完成）</li>
+                    </ul>
+                </div>
+                
+                <h4 data-subsection="7.1.1">处理方案1：全部保留</h4>
+                
+                <pre><code>告诉 AI：
+"分析这些未追踪和未暂存的文件，
+保留有用的，删除临时文件，然后提交"
+
+AI 会：
+1. 读取所有文件
+2. 删除 .log、.tmp 等临时文件
+3. git add 保留的文件
+4. git commit</code></pre>
+                
+                <h4 data-subsection="7.1.2">处理方案2：全部丢弃</h4>
+                
+                <pre><code>git reset --hard  # 丢弃所有未暂存的修改
+git clean -fd     # 删除所有未追踪的文件</code></pre>
+                
+                <h4 data-subsection="7.1.3">处理方案3：部分保留</h4>
+                
+                <pre><code>告诉 AI：
+"只保留 login.js 和 auth.js，其他都丢弃"
+
+AI 会：
+git add login.js auth.js
+git commit -m "feat: partial login implementation"
+git clean -fd  # 删除其他未追踪文件</code></pre>
+                
+                <div class="concept-card">
+                    <h4>如何判断该保留什么？</h4>
+                    <p><strong>策略1：问 AI 当前进度</strong></p>
+                    <pre><code>"总结一下你现在做到哪一步了，
+哪些功能已经完成，哪些还没做"</code></pre>
+                    
+                    <p><strong>策略2：让 AI 分类文件</strong></p>
+                    <pre><code>"把现在所有改动的文件分成三类：
+1. 完成的功能（可以保留）
+2. 半成品（需要判断）
+3. 临时调试文件（可以删除）"</code></pre>
+                    
+                    <p><strong>策略3：查看 Git 状态</strong></p>
+                    <pre><code>"运行 git status，然后解释每个文件的状态"</code></pre>
+                </div>
+            </div>
+
+<div class="practice">
+    <h4>💡 Tip：用 Subagent 评估中间态文件</h4>
+    <p><strong>场景：</strong>AI Agent 陷入死循环，产生大量未追踪/未暂存文件</p>
+    
+    <p><strong>最佳做法：</strong>在<strong>当前对话窗口</strong>让主 Agent 调用 Subagent Code Reviewer</p>
+    
+    <pre><code>你："停下来！调用 Subagent Code Reviewer，
+评估现在的代码状态，告诉我哪些该保留"</code></pre>
+    
+    <p><strong>为什么用 Subagent？</strong></p>
+    <ul>
+        <li><strong>有任务上下文：</strong>知道你要实现什么功能、当前进度</li>
+        <li><strong>没有执行历史：</strong>不受"这是我尝试过的"这种认知惯性影响</li>
+        <li><strong>客观评估：</strong>fresh pair of eyes，只看代码质量和对目标的贡献</li>
+    </ul>
+    
+    <p style="margin-top: 15px; padding: 12px; background: #fff9e6; border-left: 3px solid #f59e0b; border-radius: 4px;">
+        <strong>⚠️ 注意：</strong>主 Agent 的推理链会被自己的历史锁定（认知路径依赖）。Subagent 没有这个问题，因为它只接收任务目标和当前状态，不接收主 Agent 的思考过程。
+    </p>
+</div>
+            
+            <div class="content-section">
+                <h3 data-section="7.2">多 AI Agent 协作导致混乱</h3>
+                
+                <p>我同时用了 Claude Code、Codex、Cursor，结果代码库变得一团糟。</p>
+                
+                <div class="practice">
+                    <h4>为什么会混乱？</h4>
+                    <ul>
+                        <li>每个 Agent 都在工作区修改文件</li>
+                        <li>没有及时 commit，导致修改堆积</li>
+                        <li>不同 Agent 的修改可能冲突</li>
+                    </ul>
+                </div>
+
+                <h4 data-subsection="7.2.1">最佳实践：规则1</h4>
+                
+                <div class="highlight">
+                    <strong>一个 Agent 完成任务后再用另一个</strong>
+                </div>
+                
+                <pre><code># ✅ 正确流程
+Claude Code 完成登录功能
+ ↓
+git add + git commit
+ ↓
+切换到 Cursor 优化首页
+ ↓
+git add + git commit</code></pre>
+                
+                <h4 data-subsection="7.2.2">最佳实践：规则2</h4>
+                
+                <div class="highlight">
+                    <strong>使用不同的 Branch</strong>
+                </div>
+                
+                <pre><code># Claude Code 用 feature-login 分支
+git checkout -b feature-login
+Claude Code 工作...
+git commit
+
+# Cursor 用 feature-homepage 分支
+git checkout -b feature-homepage
+Cursor 工作...
+git commit
+
+# 最后合并
+git checkout main
+git merge feature-login
+git merge feature-homepage</code></pre>
+                
+                <h4 data-subsection="7.2.3">最佳实践：规则3</h4>
+                
+                <div class="highlight">
+                    <strong>定期 commit</strong>
+                </div>
+                
+                <p>不要等所有功能完成才 commit，每完成一个小功能就 commit 一次。</p>
+            </div>
+            
+            <div class="content-section">
+                <h3 data-section="7.3">在 Claude Code 里如何 Commit</h3>
+                
+                <h4 data-subsection="7.3.1">方式1：让 Claude Code 自动处理</h4>
+                
+                <pre><code>你: "测试通过了，帮我 commit 并推送到 GitHub"
+
+Claude Code 会：
+1. 运行 git add .（添加所有修改）
+2. 生成符合规范的 commit message
+3. git commit -m "feat: add user authentication"
+4. git push origin main</code></pre>
+                
+                <h4 data-subsection="7.3.2">方式2：手动指定要提交什么</h4>
+                
+                <pre><code>你: "只提交 src/auth.js 和 src/login.js，
+    其他文件先不要动"
+
+Claude Code 会：
+git add src/auth.js src/login.js
+git commit -m "feat: implement OAuth login flow"</code></pre>
+            </div>
+        </section>
+
+        <!-- 附录 -->
+        <section id="appendix">
+            <h2 data-chapter="附录">术语类比对照表</h2>
+            
+            <div class="content-section">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                    <thead style="background: var(--primary); color: white;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left;">Git 术语</th>
+                            <th style="padding: 12px; text-align: left;">历史编年类比</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;"><code>.git</code> 仓库</td>
+                            <td style="padding: 12px;">历史档案馆</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">Commit</td>
+                            <td style="padding: 12px;">某个时间点的历史快照</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">Branch</td>
+                            <td style="padding: 12px;">时间线标记（书签）</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">Worktree</td>
+                            <td style="padding: 12px;">研究室（查看不同时间线的地方）</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">工作区</td>
+                            <td style="padding: 12px;">历史学家的写作台</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">暂存区</td>
+                            <td style="padding: 12px;">待发表区</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">仓库</td>
+                            <td style="padding: 12px;">历史卷宗</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">git add</td>
+                            <td style="padding: 12px;">把内容放入待发表区</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">git commit</td>
+                            <td style="padding: 12px;">正式载入史册</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">Merge</td>
+                            <td style="padding: 12px;">合并平行时间线</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">版本回退</td>
+                            <td style="padding: 12px;">查阅过去的历史</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 12px;">GitHub</td>
+                            <td style="padding: 12px;">云端的历史档案馆</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer style="margin-top: 80px; padding-top: 40px; border-top: 2px solid var(--border); text-align: center; color: var(--text-muted);">
+            <p style="font-size: 0.95em;">这是我的个人学习笔记 — 记录从困惑到理解的过程</p>
+            <p style="font-size: 0.85em; margin-top: 10px;">创建者：Nina & Claude | 创建于 2026年5月 | 最后更新：2026年5月1日</p>
+        </footer>
+    </div>
+
+    <!-- 回到顶部 -->
+    <a href="#" class="back-to-top" id="backToTop">↑</a>
+
+    <script>
+        // 回到顶部按钮
+        const backToTop = document.getElementById('backToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+        
+        backToTop.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
