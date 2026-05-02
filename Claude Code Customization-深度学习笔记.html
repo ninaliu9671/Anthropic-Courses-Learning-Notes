@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code Customization — 深度学习笔记</title>
+    <link href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a5f;
+            --primary-light: #2d5a8f;
+            --accent: #c17d4a;
+            --accent-light: #d49968;
+            --bg: #fdfcfa;
+            --bg-card: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #4a5568;
+            --text-muted: #6b7280;
+            --border: #d4c5b9;
+            --code-bg: #2d3748;
+            --highlight: #ffd93d;
+            --font-serif: 'Literata', serif;
+            --font-sans: 'Source Sans 3', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-serif);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            font-size: 17px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 60px 30px; }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 40px;
+        }
+        h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .meta-tags {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .tag {
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #e8f0fb, #f0f7ff);
+            color: var(--primary);
+            border: 1px solid #b8ceeb;
+        }
+        h2 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 55px 0 22px;
+            border-left: 5px solid var(--accent);
+            padding-left: 20px;
+        }
+        h2::before {
+            content: attr(data-chapter);
+            display: block;
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--primary-light);
+            margin: 32px 0 14px;
+        }
+        h4 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 22px 0 10px;
+        }
+        p { margin: 14px 0; text-align: justify; }
+        ul, ol { margin: 12px 0; padding-left: 30px; }
+        li { margin: 7px 0; }
+
+        /* Mind Map */
+        .mindmap-container {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 40px 0;
+            box-shadow: 0 4px 20px rgba(30,58,95,0.08);
+        }
+        .mindmap-title {
+            text-align: center;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        /* Collapsible sections */
+        details {
+            margin: 20px 0;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-card);
+        }
+        summary {
+            padding: 16px 22px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            color: var(--primary);
+            font-size: 1.05rem;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::before {
+            content: '▶';
+            font-size: 0.75rem;
+            color: var(--accent);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        details[open] summary::before { transform: rotate(90deg); }
+        .details-body { padding: 0 22px 22px; }
+
+        /* Card styles */
+        .insight-card {
+            background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+            border-left: 5px solid var(--highlight);
+            padding: 20px 25px;
+            margin: 22px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .insight-card .card-title {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: #c9900a;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+        }
+        .observation-box {
+            background: #f0f9ff;
+            border-left: 5px solid #378add;
+            padding: 20px 25px;
+            margin: 22px 0;
+            border-radius: 8px;
+        }
+        .observation-box .card-title {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: #185fa5;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+        }
+        .confusion-box {
+            background: #fff5f5;
+            border-left: 5px solid #e24b4a;
+            padding: 20px 25px;
+            margin: 22px 0;
+            border-radius: 8px;
+        }
+        .confusion-box .card-title {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: #a32d2d;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+        }
+        .key-takeaway {
+            background: linear-gradient(135deg, #e6f1fb 0%, #f0f9ff 100%);
+            border: 2px solid #378add;
+            border-radius: 12px;
+            padding: 25px 30px;
+            margin: 28px 0;
+        }
+        .key-takeaway .card-title {
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: #185fa5;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        /* Content blocks */
+        .visual-box {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            margin: 22px 0;
+            box-shadow: 0 2px 10px rgba(30,58,95,0.06);
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+            border-left: 4px solid var(--accent);
+            padding: 18px 22px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .warning-box {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+            border-left: 4px solid #e53e3e;
+            padding: 16px 20px;
+            margin: 18px 0;
+            border-radius: 8px;
+        }
+        .practice-box {
+            background: linear-gradient(135deg, #e8f4f8 0%, #ffffff 100%);
+            border-left: 4px solid var(--primary-light);
+            padding: 20px 25px;
+            margin: 22px 0;
+            border-radius: 8px;
+        }
+
+        /* Code */
+        code {
+            font-family: var(--font-mono);
+            background: #f0ede8;
+            color: var(--primary);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+        pre {
+            background: var(--code-bg);
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 18px 0;
+            font-family: var(--font-mono);
+            font-size: 0.88em;
+            line-height: 1.6;
+            border: 2px solid var(--primary);
+        }
+        pre code { background: transparent; color: #e2e8f0; padding: 0; }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(30,58,95,0.06);
+        }
+        thead { background: var(--primary); color: white; }
+        th { padding: 13px 15px; text-align: left; font-weight: 600; font-family: var(--font-sans); }
+        td { padding: 11px 15px; border-bottom: 1px solid var(--border); }
+        tbody tr:hover { background: #f7fafc; }
+
+        /* Comparison grid */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin: 22px 0;
+        }
+        .comparison-item {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 18px;
+            border-radius: 8px;
+        }
+        .comparison-item h4 { margin-top: 0; border-bottom: 2px solid var(--accent-light); padding-bottom: 7px; }
+
+        /* Steps */
+        .steps { counter-reset: step; list-style: none; padding: 0; }
+        .steps li {
+            counter-increment: step;
+            padding: 13px 13px 13px 50px;
+            margin: 12px 0;
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            position: relative;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            color: white;
+            width: 27px;
+            height: 27px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+        }
+
+        /* Practice path specific */
+        .phase-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .phase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+        }
+        .phase-1::before { background: #4299e1; }
+        .phase-2::before { background: #48bb78; }
+        .phase-3::before { background: #ed8936; }
+        .phase-4::before { background: #9f7aea; }
+        .phase-5::before { background: #f56565; }
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .phase-badge {
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: white;
+        }
+        .badge-1 { background: #4299e1; }
+        .badge-2 { background: #48bb78; }
+        .badge-3 { background: #ed8936; }
+        .badge-4 { background: #9f7aea; }
+        .badge-5 { background: #f56565; }
+        .phase-title {
+            font-family: var(--font-sans);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .phase-timeline {
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .analysis-box {
+            background: #f9f7f4;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 14px 0;
+        }
+        .tool-decision {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin: 20px 0;
+        }
+        .tool-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .tool-card .tool-name {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: block;
+        }
+        .tool-card .tool-role {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(30,58,95,0.3);
+            opacity: 0;
+            transition: all 0.3s;
+            font-size: 1.3rem;
+        }
+        .back-to-top.visible { opacity: 1; }
+        .back-to-top:hover { background: var(--accent); transform: translateY(-4px); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.5rem; }
+            .comparison, .tool-decision { grid-template-columns: 1fr; }
+            .container { padding: 30px 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <h1>Claude Code Customization</h1>
+        <p class="subtitle">从工作记忆到自动化 — 让 Claude 真正"认识"你的项目</p>
+        <div class="meta-tags">
+            <span class="tag">Context Management</span>
+            <span class="tag">CLAUDE.md</span>
+            <span class="tag">Subagents</span>
+            <span class="tag">Skills</span>
+            <span class="tag">MCP</span>
+            <span class="tag">Hooks</span>
+            <span class="tag">2026-05-02</span>
+        </div>
+    </header>
+
+    <!-- ===== MIND MAP ===== -->
+    <div class="mindmap-container">
+        <div class="mindmap-title">本章知识脉络 · 思维导图</div>
+        <svg width="100%" viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" role="img">
+            <title>Claude Code深度定制思维导图</title>
+            <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                    <path d="M2 1L8 5L2 9" fill="none" stroke="#9aa5b4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+            </defs>
+
+            <!-- Center node -->
+            <rect x="330" y="210" width="240" height="60" rx="10" fill="#1e3a5f"/>
+            <text x="450" y="236" text-anchor="middle" fill="white" font-size="15" font-weight="600" font-family="sans-serif">Claude Code</text>
+            <text x="450" y="256" text-anchor="middle" fill="#a3bbd6" font-size="12" font-family="sans-serif">深度定制系统</text>
+
+            <!-- Branch 1: Context Management (left top) -->
+            <rect x="40" y="40" width="175" height="64" rx="8" fill="#e8f0fb" stroke="#2d5a8f" stroke-width="1.5"/>
+            <text x="127" y="65" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">① Context 管理</text>
+            <text x="127" y="84" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">/context · /compact · /clear</text>
+            <line x1="215" y1="72" x2="330" y2="220" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Branch 2: Persistence (left middle) -->
+            <rect x="20" y="180" width="195" height="80" rx="8" fill="#fff9e6" stroke="#c17d4a" stroke-width="1.5"/>
+            <text x="117" y="205" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">② 持久化记忆</text>
+            <text x="117" y="224" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">CLAUDE.md · Auto Memory</text>
+            <text x="117" y="240" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">Persistent Memory</text>
+            <line x1="215" y1="220" x2="330" y2="240" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Branch 3: Skills (left bottom) -->
+            <rect x="40" y="340" width="175" height="64" rx="8" fill="#f0fdf4" stroke="#48bb78" stroke-width="1.5"/>
+            <text x="127" y="365" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">③ Skills</text>
+            <text x="127" y="384" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">两层加载 · 85% token节省</text>
+            <line x1="215" y1="375" x2="330" y2="270" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Branch 4: MCP (right top) -->
+            <rect x="685" y="40" width="175" height="64" rx="8" fill="#fef3f2" stroke="#e24b4a" stroke-width="1.5"/>
+            <text x="772" y="65" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">④ MCP</text>
+            <text x="772" y="84" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">连接外部工具 · 协议标准</text>
+            <line x1="685" y1="72" x2="570" y2="220" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Branch 5: Hooks (right middle) -->
+            <rect x="685" y="180" width="195" height="80" rx="8" fill="#f0f9ff" stroke="#378add" stroke-width="1.5"/>
+            <text x="782" y="205" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">⑤ Hooks</text>
+            <text x="782" y="224" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">确定性执行 · 100% 不遗漏</text>
+            <text x="782" y="240" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">PreToolUse · PostToolUse</text>
+            <line x1="685" y1="220" x2="570" y2="240" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Branch 6: Subagents (right bottom) -->
+            <rect x="685" y="340" width="175" height="64" rx="8" fill="#faf5ff" stroke="#9f7aea" stroke-width="1.5"/>
+            <text x="772" y="365" text-anchor="middle" fill="#1e3a5f" font-size="13" font-weight="600" font-family="sans-serif">⑥ Subagents</text>
+            <text x="772" y="384" text-anchor="middle" fill="#4a5568" font-size="11" font-family="sans-serif">Context边界 · 独立视角</text>
+            <line x1="685" y1="375" x2="570" y2="270" stroke="#9aa5b4" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+            <!-- Bottom: Practice Path -->
+            <rect x="300" y="440" width="300" height="56" rx="10" fill="#1e3a5f" opacity="0.85"/>
+            <text x="450" y="462" text-anchor="middle" fill="white" font-size="13" font-weight="600" font-family="sans-serif">⑦ 实践路线</text>
+            <text x="450" y="482" text-anchor="middle" fill="#a3bbd6" font-size="11" font-family="sans-serif">每日学习自动化 Workflow 搭建</text>
+            <line x1="450" y1="270" x2="450" y2="440" stroke="#9aa5b4" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr)"/>
+        </svg>
+    </div>
+
+    <!-- ===== SECTION 1: Context Window ===== -->
+    <section id="context">
+        <h2 data-chapter="第一章">Context Window — 工作记忆的本质</h2>
+
+        <p>学习 Claude Code 一段时间后，你一定遇到过"Claude 开始偏离方向"或"它好像忘了之前说的"这种情况。这不是玄学，而是 <strong>Context Window 被填满了</strong>。理解这个机制，是做好深度定制的基础。</p>
+
+        <div class="insight-card">
+            <div class="card-title">💡 Context Window 的真实构成</div>
+            <p>很多人以为 Context Window 只装"对话历史"。其实它装的东西比想象中多得多：</p>
+            <ul>
+                <li><strong>对话历史</strong>（~30%）：你说的话 + Claude 的回复</li>
+                <li><strong>读取的文件内容</strong>（~25%）：每次 view 一个文件都占空间</li>
+                <li><strong>命令执行结果</strong>（~20%）：bash 命令的输出也要存储</li>
+                <li><strong>MCP 工具定义</strong>（~10%）：连接的外部服务描述</li>
+                <li><strong>Skills 目录</strong>（~5%）：加载的技能名称和描述</li>
+                <li><strong>System prompt</strong>（~3%）：内置指令</li>
+            </ul>
+        </div>
+
+        <h3>三个关键命令</h3>
+
+        <table>
+            <thead>
+                <tr><th>命令</th><th>作用</th><th>用法场景</th><th>效果</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>/context</code></td><td>查看 Context 使用情况</td><td>感觉 Claude 变慢时检查</td><td>可视化各类别占用</td></tr>
+                <tr><td><code>/compact</code></td><td>压缩历史，保留记忆</td><td>继续当前任务但快到上限了</td><td>释放空间，保留核心</td></tr>
+                <tr><td><code>/clear</code></td><td>完全清空，不保留历史</td><td>开始全新任务时</td><td>重置所有 Context</td></tr>
+            </tbody>
+        </table>
+
+        <div class="observation-box">
+            <div class="card-title">📊 实测数据：刚启动就用了 7%</div>
+            <p>我在 <code>learning-workflow</code> 目录刚启动 Claude，立刻运行 <code>/context</code>，发现 context 已经用了 7%：</p>
+            <pre><code>claude-sonnet-4-6
+13k/200k tokens (7%)
+
+Estimated usage:
+- System prompt:  1.4k tokens (0.7%)
+- System tools:   7.0k tokens (3.5%)  ← 最大头！固定成本
+- MCP tools:     0.46k tokens (0.2%)  ← 空转中
+- Custom agents:  0.31k tokens (0.2%)
+- Skills:         2.5k tokens (1.3%)  ← 加载了 lark 系列但不用
+- Messages:       1.4k tokens (0.7%)</code></pre>
+            <p>结论：<strong>1.5% 是 Skills 和 MCP 在占空间但没干活</strong>。Context 管理不只是"满了才处理"，要主动优化工具加载。</p>
+        </div>
+
+        <h3>/clear 与 CLAUDE.md 的黄金搭档</h3>
+
+        <p><code>/clear</code> 的问题是清空后什么都不记得了，但 <strong>CLAUDE.md 的内容每次启动都会重新加载</strong>。所以正确的工作节奏是：</p>
+
+        <ol class="steps">
+            <li>一个功能做完，把这次学到的规则、偏好补充到 <code>CLAUDE.md</code></li>
+            <li>运行 <code>/clear</code> 清空 Context，得到全新起点</li>
+            <li>下次启动，Claude 自动读取 <code>CLAUDE.md</code>，不需要重新解释</li>
+        </ol>
+
+        <div class="insight-card">
+            <div class="card-title">💡 Subagent 解决"探索性任务污染主 Context"</div>
+            <p>有时候你需要让 Claude 去探索一个大型 codebase，但探索过程会产生大量"中间过程"污染 Context。解决方案：<strong>用 Subagent 做探索性任务，它只返回 summary，不污染主 Context</strong>。这是 Subagent 的核心价值之一，在第六章会详细讲。</p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 2: CLAUDE.md & Memory ===== -->
+    <section id="memory">
+        <h2 data-chapter="第二章">持久化记忆 — 让 Claude 跨 Session 记住项目</h2>
+
+        <p>LLM 是无状态的——每次 API 调用都是全新实例，Session 结束后所有上下文消失。持久化记忆就是解决这个根本矛盾的机制。Claude Code 提供了<strong>三套并行的持久化机制</strong>，各司其职。</p>
+
+        <div class="visual-box">
+            <svg width="100%" viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg">
+                <rect x="20" y="20" width="240" height="160" rx="10" fill="#fff9e6" stroke="#c17d4a" stroke-width="2"/>
+                <text x="140" y="48" text-anchor="middle" font-size="14" font-weight="600" fill="#1e3a5f" font-family="sans-serif">CLAUDE.md</text>
+                <text x="140" y="70" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">静态知识（你手写）</text>
+                <text x="140" y="92" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">技术栈 · 团队规范 · 命令</text>
+                <text x="140" y="112" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">启动时自动加载</text>
+                <text x="140" y="150" text-anchor="middle" font-size="12" fill="#c17d4a" font-family="sans-serif">适合：固定规则</text>
+
+                <rect x="310" y="20" width="240" height="160" rx="10" fill="#e8f0fb" stroke="#2d5a8f" stroke-width="2"/>
+                <text x="430" y="48" text-anchor="middle" font-size="14" font-weight="600" fill="#1e3a5f" font-family="sans-serif">Auto Memory</text>
+                <text x="430" y="70" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">动态积累（Claude 自写）</text>
+                <text x="430" y="92" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">工作习惯 · 纠错记录 · 洞见</text>
+                <text x="430" y="112" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">存于 ~/.claude/ 本机</text>
+                <text x="430" y="150" text-anchor="middle" font-size="12" fill="#2d5a8f" font-family="sans-serif">不可团队共享</text>
+
+                <rect x="600" y="20" width="240" height="160" rx="10" fill="#faf5ff" stroke="#9f7aea" stroke-width="2"/>
+                <text x="720" y="48" text-anchor="middle" font-size="14" font-weight="600" fill="#1e3a5f" font-family="sans-serif">Persistent Memory</text>
+                <text x="720" y="70" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">Subagent 专属记忆</text>
+                <text x="720" y="92" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">project scope → Git 提交</text>
+                <text x="720" y="112" text-anchor="middle" font-size="11" fill="#6b7280" font-family="sans-serif">MEMORY.md 索引架构</text>
+                <text x="720" y="150" text-anchor="middle" font-size="12" fill="#9f7aea" font-family="sans-serif">适合：团队共享 reviewer</text>
+            </svg>
+        </div>
+
+        <h3>CLAUDE.md — 项目的"提前写好的 prompt"</h3>
+
+        <p>CLAUDE.md 本质上就是<strong>预设的 system prompt</strong>，每次启动时自动追加到你的 prompt 里。它只有一个特殊功能：Claude Code 启动时自动读取，仅此而已。</p>
+
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>没有 CLAUDE.md 的日常</h4>
+                <pre><code>你：帮我写一个 React 组件
+Claude：用哪个框架？什么风格？
+你：Next.js 15，Tailwind
+
+[第二天]
+你：再写一个组件
+Claude：用哪个框架？什么风格？
+你：😤 昨天不是说了吗！</code></pre>
+            </div>
+            <div class="comparison-item">
+                <h4>有 CLAUDE.md 的日常</h4>
+                <pre><code># CLAUDE.md
+## 技术栈
+- Next.js 15
+- Tailwind CSS
+- pnpm 包管理器
+
+## 代码规范
+- 2 空格缩进
+- TypeScript 严格模式
+
+[每次启动自动加载，不用再解释]</code></pre>
+            </div>
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 @ 引用：保持 CLAUDE.md 简洁的诀窍</div>
+            <p>复杂项目的 CLAUDE.md 可以只做"目录"，用 <code>@</code> 引用具体的规范文件：</p>
+            <pre><code># CLAUDE.md
+@workflow-rules.md       ← 生成笔记的规范
+@output-format.md        ← 输出格式标准
+@xiaohongshu-style.md    ← 小红书文案风格
+@我的学习方式-AI辅助学习指南.md</code></pre>
+            <p>这样既保持 CLAUDE.md 简洁，又能让每个规范文件独立维护，Git 追踪也更清晰。</p>
+        </div>
+
+        <details>
+            <summary>📌 CLAUDE.md 的演化过程：从实践倒推</summary>
+            <div class="details-body">
+                <p>最佳实践不是"一开始想象所有规则"，而是<strong>遇到问题 → 纠正 → 记录 → 下次不犯</strong>：</p>
+                <table>
+                    <thead><tr><th>时间</th><th>遇到问题</th><th>补充到 CLAUDE.md</th></tr></thead>
+                    <tbody>
+                        <tr><td>第 1 天</td><td>Claude 不知道用哪个框架</td><td><code>## 技术栈: Next.js 15</code></td></tr>
+                        <tr><td>第 3 天</td><td>Claude 总用 npm，我用 pnpm</td><td><code>## 命令: pnpm install</code></td></tr>
+                        <tr><td>第 7 天</td><td>Claude 总写 API routes</td><td><code>## 规范: 优先 server actions</code></td></tr>
+                        <tr><td>第 14 天</td><td>缩进风格不一致</td><td><code>## 代码规范: 2 空格缩进</code></td></tr>
+                    </tbody>
+                </table>
+                <p><strong>例外</strong>：固定流程项目（如 workflow 自动化脚本）可以提前把规则全部写进去，因为目标明确、流程固定。</p>
+            </div>
+        </details>
+
+        <h3>Persistent Memory — Subagent 的跨 Session 专家记忆</h3>
+
+        <p>如果说 CLAUDE.md 是你手动维护的规则文档，那 Persistent Memory 就是 <strong>Subagent 在工作过程中自己积累的经验</strong>。它有三种作用域：</p>
+
+        <table>
+            <thead><tr><th>Scope</th><th>存储路径</th><th>可 Git 共享</th><th>适用场景</th></tr></thead>
+            <tbody>
+                <tr><td><strong>user</strong></td><td><code>~/.claude/agent-memory/</code></td><td>❌</td><td>跨项目通用知识</td></tr>
+                <tr><td><strong>project</strong></td><td><code>.claude/agent-memory/</code></td><td>✅ 推荐</td><td>团队共享 reviewer 记忆</td></tr>
+                <tr><td><strong>local</strong></td><td><code>.claude/agent-memory-local/</code></td><td>❌</td><td>不想提交的私有知识</td></tr>
+            </tbody>
+        </table>
+
+        <div class="visual-box">
+            <h4>MEMORY.md 的架构设计：两层结构</h4>
+            <pre><code>.claude/agent-memory/code-reviewer/
+├── MEMORY.md           ← 索引文件（≤200行，启动时自动注入）
+│   [auth] JWT 必须用 UTC+0，本地时区导致验证失败 → auth-patterns.md
+│   [perf] N+1 查询已出现 3 次，重点检查 ORM 调用 → perf-issues.md
+│   [debt] auth/legacy.ts 有 5 个未处理 TODO → tech-debt.md
+├── auth-patterns.md    ← topic 文件（Agent 按需读取，不限大小）
+├── perf-issues.md
+└── tech-debt.md</code></pre>
+            <p>MEMORY.md 前 200 行在启动时自动注入 system prompt，超出部分 Agent 可以主动读取。这是刻意的工程权衡：<strong>200 行约 3000~5000 tokens，平衡"有用背景知识"和"不拖累 context window"</strong>。</p>
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 Dream Agent：自动整理 Memory 的后台管家</div>
+            <p>当 MEMORY.md 超出 200 行时，Dream Agent 会自动触发（距上次整理 24h 且有 5 个新 session），做以下工作：</p>
+            <ul>
+                <li>合并重叠条目，删除过时内容</li>
+                <li>把详细内容移入 topic 文件</li>
+                <li>维持 MEMORY.md 在 200 行以内</li>
+            </ul>
+            <p>你也可以手动输入 <code>dream</code 触发整理。</p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 3: Skills ===== -->
+    <section id="skills">
+        <h2 data-chapter="第三章">Skills — 按需加载的插件化知识系统</h2>
+
+        <p>如果说 CLAUDE.md 是"每次都要记住的规则"，那 Skills 就是<strong>"需要时才拿出来的专业手册"</strong>。它的设计哲学非常优雅：让 Agent 知道有什么能力，但不让无关知识永远占据 Context。</p>
+
+        <h3>两层加载模型：发现 vs 掌握</h3>
+
+        <div class="visual-box">
+            <svg width="100%" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+                <!-- Layer 1 -->
+                <rect x="30" y="30" width="300" height="90" rx="8" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.5)" stroke-width="2"/>
+                <text x="180" y="58" text-anchor="middle" font-size="14" font-weight="600" fill="#1e3a5f" font-family="sans-serif">Layer 1：启动时加载的"目录"</text>
+                <text x="180" y="80" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">- web-search: 网页搜索能力（~100 tokens）</text>
+                <text x="180" y="100" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">- xiaohongshu: 小红书文案风格（~100 tokens）</text>
+
+                <text x="450" y="60" font-size="13" fill="#10b981" font-family="sans-serif" font-weight="500">✓ 便宜</text>
+                <text x="450" y="80" font-size="13" fill="#10b981" font-family="sans-serif">✓ Agent 知道"有什么"</text>
+                <text x="450" y="100" font-size="12" fill="#6b7280" font-family="sans-serif">10 个 Skills = ~1000 tokens</text>
+
+                <!-- Arrow -->
+                <path d="M180 120 L180 170" stroke="#9aa5b4" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+                <text x="200" y="150" font-size="12" fill="#4a5568" font-family="sans-serif">Agent 判断需要该 Skill</text>
+
+                <!-- Layer 2 -->
+                <rect x="30" y="180" width="300" height="60" rx="8" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.5)" stroke-width="2"/>
+                <text x="180" y="208" text-anchor="middle" font-size="14" font-weight="600" fill="#1e3a5f" font-family="sans-serif">Layer 2：按需加载的"完整内容"</text>
+                <text x="180" y="228" text-anchor="middle" font-size="12" fill="#4a5568" font-family="sans-serif">&lt;skill name="xiaohongshu"&gt;...完整步骤...&lt;/skill&gt;</text>
+
+                <text x="450" y="200" font-size="13" fill="#f59e0b" font-family="sans-serif" font-weight="500">~2000 tokens</text>
+                <text x="450" y="220" font-size="13" fill="#f59e0b" font-family="sans-serif">✓ 按需加载</text>
+                <text x="450" y="238" font-size="11" fill="#6b7280" font-family="sans-serif">用完任务后不再占用</text>
+            </svg>
+        </div>
+
+        <div class="key-takeaway">
+            <div class="card-title">🎯 Skills 的核心价值：85% token 节省</div>
+            <table>
+                <thead><tr><th>方式</th><th>10个 Skills 的成本</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td>传统方式（全放 System Prompt）</td><td>10 × 2000 = <strong>20,000 tokens</strong></td><td>所有知识永远在 Context</td></tr>
+                    <tr><td>Skills 方式</td><td>10 × 100 + 1 × 2000 = <strong>3,000 tokens</strong></td><td>只加载目录 + 需要那一个</td></tr>
+                    <tr><td>节省</td><td style="color:#10b981;font-weight:600;">↓ 85%</td><td>每次 API 调用省 17,000 tokens</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Skill 的文件结构</h3>
+
+        <pre><code>---
+name: xiaohongshu-casual
+description: 口语感悟风的小红书文案，适合记录学习心路历程
+---
+
+## 文案风格
+真实的学习过程，不是固定模板。开头引出最近学到的有趣事，
+核心概念列举2-3个关键洞察，中间穿插遇到的困惑和解答，
+结尾自然收束。
+
+## 禁止
+- 不要 AI 味、营销号腔
+- 不要"总结一下就是"这种套话</code></pre>
+
+        <p>YAML frontmatter（<code>---</code>之间）里的 <code>name</code> 和 <code>description</code> 是 Layer 1 的内容，其余部分是 Layer 2 的内容。两层分离，各司其职。</p>
+
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>CLAUDE.md vs Skills：清晰的分工</h4>
+                <p><strong>CLAUDE.md</strong>：核心任务流程（What）</p>
+                <pre style="font-size:0.82em"><code>你的任务：
+1. 读取学习材料
+2. 生成学习笔记
+3. 调用 xiaohongshu skill
+4. 调用 image-prompt skill</code></pre>
+            </div>
+            <div class="comparison-item">
+                <h4>Skills：执行细节（How）</h4>
+                <pre style="font-size:0.82em"><code>skills/
+├── xiaohongshu-casual/
+│   └── SKILL.md  ← 口语风格规范
+├── xiaohongshu-professional/
+│   └── SKILL.md  ← 专业知识风
+└── sd-image-prompt/
+    └── SKILL.md  ← 配图 prompt 模板</code></pre>
+            </div>
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 这是从"学会工具"到"理解系统设计"的关键跃迁</div>
+            <p>Skills 不只是"提示词工程"，它体现了一个设计原则：<strong>知识在需要的 moment 才进入上下文，不该永远占据 System Prompt</strong>。掌握这个思路，才能真正设计出高效的 AI 工作流。</p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 4: MCP ===== -->
+    <section id="mcp">
+        <h2 data-chapter="第四章">MCP — 连接外部世界的协议桥梁</h2>
+
+        <p>Claude Code 本身只能访问你的本地代码文件，但实际工作中的数据散落在各处：Linear 的任务、Notion 的文档、数据库的用户数据……MCP（Model Context Protocol）就是连接这些外部工具的<strong>协议标准</strong>。</p>
+
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>HTTP 服务器</h4>
+                <p>由服务商托管，通过网络连接</p>
+                <ul>
+                    <li>Linear、Jira（任务管理）</li>
+                    <li>Context7（最新技术文档）</li>
+                    <li>Notion、Google Drive</li>
+                </ul>
+            </div>
+            <div class="comparison-item">
+                <h4>Stdio 服务器</h4>
+                <p>在本地运行的进程</p>
+                <ul>
+                    <li>本地数据库连接</li>
+                    <li>自定义 Python 脚本</li>
+                    <li>内部 API 服务</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>MCP 的三种作用域</h3>
+        <table>
+            <thead><tr><th>Scope</th><th>配置位置</th><th>共享范围</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Local</strong></td><td>本机配置</td><td>只有你，当前项目</td></tr>
+                <tr><td><strong>User</strong></td><td>用户配置</td><td>只有你，所有项目</td></tr>
+                <tr><td><strong>Project</strong></td><td><code>.mcp.json</code></td><td>团队共享 ✅</td></tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <strong>⚠️ MCP 的 Context 成本</strong><br>
+            MCP 服务器会将所有工具定义加载到 Context Window，<strong>即使不使用也会占用空间</strong>（不像 Skills 只加载目录）。所以要养成习惯：用 <code>/mcp</code> 定期检查已连接的服务器，禁用不常用的。如果工具定义超过 Context 的 10%，Claude Code 会自动切换到 tool search 模式。
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 我的 workflow 当前不需要 MCP</div>
+            <p>判断是否需要 MCP 的标准很简单：<strong>数据在本地还是外部？</strong></p>
+            <ul>
+                <li>学习资料是本地 markdown 文件 → 不需要 MCP</li>
+                <li>GitHub 操作 → Git 命令就够了</li>
+                <li>小红书发布 → 目前手动更简单</li>
+            </ul>
+            <p>何时需要：从 Notion 读笔记 → Notion MCP；查最新 API 文档 → Context7 MCP。<strong>按需接入，不要为了用而用。</strong></p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 5: Hooks ===== -->
+    <section id="hooks">
+        <h2 data-chapter="第五章">Hooks — 确定性执行机制</h2>
+
+        <p>你有没有在 CLAUDE.md 里写过"每次修改代码后运行格式化"？大部分时候 Claude 会做，但有时候会忘。<strong>Hooks 解决的正是这个问题</strong>：把"可能会做"变成"100% 一定做"。</p>
+
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>❌ 提示方式（不确定）</h4>
+                <p>在 CLAUDE.md 写：<br>"每次编辑文件后运行 Prettier 格式化"</p>
+                <p style="color: #e53e3e; margin-top: 10px;">⚠️ 大部分时候会做<br>⚠️ 但有时候会忘记</p>
+            </div>
+            <div class="comparison-item">
+                <h4>✅ Hooks 方式（确定）</h4>
+                <p>settings.json 配置：<br>PostToolUse + 匹配 Edit|Write<br>→ 自动运行 <code>prettier --write</code></p>
+                <p style="color: #48bb78; margin-top: 10px;">✓ 100% 执行，无例外<br>✓ Claude 没有选择权</p>
+            </div>
+        </div>
+
+        <h3>五个生命周期事件</h3>
+
+        <table>
+            <thead><tr><th>Hook 类型</th><th>触发时机</th><th>能否阻止操作</th><th>典型用途</th></tr></thead>
+            <tbody>
+                <tr><td><code>PreToolUse</code></td><td>工具执行前</td><td>✅ 可以（exit code 1）</td><td>安全检查、权限验证</td></tr>
+                <tr><td><code>PostToolUse</code></td><td>工具执行后</td><td>❌ 不能</td><td>自动格式化、日志记录</td></tr>
+                <tr><td><code>UserPromptSubmit</code></td><td>用户提交时</td><td>✅ 可以</td><td>输入验证、注入上下文</td></tr>
+                <tr><td><code>Stop</code></td><td>Claude 完成回复</td><td>-</td><td>发送完成通知、自动提交</td></tr>
+                <tr><td><code>Notify</code></td><td>通知事件</td><td>-</td><td>桌面推送</td></tr>
+            </tbody>
+        </table>
+
+        <h3>退出码协议</h3>
+
+        <table>
+            <thead><tr><th>Exit Code</th><th>含义</th><th>PreToolUse 效果</th><th>PostToolUse 效果</th></tr></thead>
+            <tbody>
+                <tr><td><code>0</code></td><td>成功</td><td>继续执行工具</td><td>正常继续</td></tr>
+                <tr><td><code>1</code></td><td>阻止</td><td>工具不执行，stderr 作为错误返回</td><td>警告日志</td></tr>
+                <tr><td><code>2</code></td><td>注入消息</td><td>stderr 注入对话，工具仍执行</td><td>stderr 追加到结果</td></tr>
+            </tbody>
+        </table>
+
+        <h3>决策框架：Hook 还是 CLAUDE.md？</h3>
+
+        <table>
+            <thead><tr><th>判断维度</th><th>→ Hook</th><th>→ CLAUDE.md</th></tr></thead>
+            <tbody>
+                <tr><td>能用"每次 X 就 Y"一句话说清</td><td>✅</td><td>❌</td></tr>
+                <tr><td>需要"看情况而定"</td><td>❌</td><td>✅</td></tr>
+                <tr><td>需要理解文件内容</td><td>❌</td><td>✅</td></tr>
+                <tr><td>机械重复的动作</td><td>✅</td><td>❌</td></tr>
+                <tr><td>需要创造性判断</td><td>❌</td><td>✅</td></tr>
+            </tbody>
+        </table>
+
+        <div class="practice-box">
+            <h4>Hooks 配置示例</h4>
+            <pre><code>// settings.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "prettier --write $HOOK_TOOL_INPUT_PATH --parser markdown"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/check-dangerous.sh"
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 "机器人做机械工作，助手做智能工作"</div>
+            <p>Hook 就像工厂流水线上的机器人：看到动作类型（Write/Edit），运行简单命令，机械地 100% 执行。它不能理解文件内容，不能判断"写完了吗"，不能做创造性工作。Claude 是有经验的助手：能理解意图、判断完成度、做创造性生成，但可能偶尔会忘记某个步骤。<strong>两者结合，才是最佳工作流</strong>。</p>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 6: Subagents ===== -->
+    <section id="subagents">
+        <h2 data-chapter="第六章">Subagents — 隔离、并行与独立视角</h2>
+
+        <p>Subagent 最容易被误解为"主 Agent 的一部分"。实际上，<strong>Subagent 是完整的独立 Claude 实例</strong>，有自己独立的 Context Window 和 messages 数组。主 Agent 的历史对话它完全看不到。</p>
+
+        <div class="visual-box">
+            <pre><code>主 Agent                          Subagent
++-----------------------------+   +---------------------+
+| messages = [                |   | messages = [        |
+|   历史对话（1000条）          |   |   task prompt       |
+|   工具调用结果（500个）        | → | ]                   |
+|   读取的文件（50个）           |   |                     |
+|   几万 tokens               |   | 几百 tokens（干净！）  |
+| ]                           |   |                     |
++-----------------------------+   +---------------------+
+         |                                  |
+         |                             执行任务
+         |                             生成 summary
+         |        只返回 summary        |
+         | &lt;-------------------------------+
+         |
+    context 保持干净</code></pre>
+        </div>
+
+        <h3>三种核心应用场景</h3>
+
+        <details>
+            <summary>🔍 场景A：Code Review — 独立视角，避免认知偏差</summary>
+            <div class="details-body">
+                <p>主 Agent 写完代码后，它"知道"自己想做什么，所以可能看不到 bug。Subagent 没有这个先入之见，只看"代码实际做了什么"。</p>
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>之前的方式（低效）</h4>
+                        <ol>
+                            <li>遇到问题</li>
+                            <li>打开全新 Agent 窗口</li>
+                            <li>手动复制代码</li>
+                            <li>重新解释 context 和问题</li>
+                        </ol>
+                        <p style="color:#e53e3e; margin-top:8px;">费时、容易遗漏信息</p>
+                    </div>
+                    <div class="comparison-item">
+                        <h4>Subagent 方式（高效）</h4>
+                        <ol>
+                            <li>主 Agent 写完代码</li>
+                            <li>调用 Subagent reviewer</li>
+                            <li>Subagent 自动读取文件</li>
+                            <li>返回客观审查结果</li>
+                        </ol>
+                        <p style="color:#48bb78; margin-top:8px;">快速、完整、有 fresh eyes</p>
+                    </div>
+                </div>
+                <div class="insight-card">
+                    <div class="card-title">💡 权责分离原则在 Agent 世界的体现</div>
+                    <p>就像公司里开发 ≠ QA，运动员 ≠ 裁判。<strong>Code writer（主 Agent）用 edit 权限，Code reviewer（Subagent）用 read-only tools</strong>。"A reviewer should flag issues, not edit files"。</p>
+                </div>
+                <p><strong>Reviewer Subagent 配置示例：</strong></p>
+                <pre><code>---
+name: code-reviewer
+description: 审查代码质量，检查 bug、安全问题和最佳实践
+tools: Read, Glob, Grep
+model: haiku
+memory: project
+---
+
+你是代码审查专家。审查时：
+1. 先查阅 memory，了解项目历史问题
+2. 针对本次变更进行客观审查
+3. 审查完成后更新 memory，记录新发现</code></pre>
+            </div>
+        </details>
+
+        <details>
+            <summary>⚡ 场景B：并行任务 — 多模块同时开发，互不干扰</summary>
+            <div class="details-body">
+                <pre><code>主 Agent（Project Leader）
+├── Subagent 1: 前端组件开发  → context A
+├── Subagent 2: 后端 API 开发 → context B
+├── Subagent 3: 数据库 schema → context C
+└── 主 Agent 整合所有结果</code></pre>
+                <p>三个 Subagent 可以并行工作，各自的探索过程互不干扰，最终只把结果汇报给主 Agent。</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>🔬 场景C：临时研究 — 脏活不污染主线</summary>
+            <div class="details-body">
+                <p>开发过程中遇到"这个库怎么用"，如果让主 Agent 去探索，会大量消耗 Context。用 Subagent 研究，只返回"最终答案"，主 Context 保持干净。</p>
+                <pre><code>主 Agent 在开发核心功能
+  ↓
+遇到问题："Zod v3 的类型推导怎么用？"
+  ↓
+Subagent：查文档 → 读源码 → 实验代码 → 返回"用法摘要"
+  ↓
+主 Agent 继续开发（Context 几乎没变）</code></pre>
+            </div>
+        </details>
+
+        <h3>Preload Skills：Subagent 的特殊之处</h3>
+
+        <p>主 Agent 里的 Skills 是"按需加载"，而 Subagent 配置里可以指定 <code>skill: [docx, pdf]</code>，这些 Skill 的<strong>完整内容会被预加载</strong>，而不是"等用到才加载"。原因：Subagent 生命周期短，预加载让它立刻具备完整能力。</p>
+
+        <div class="key-takeaway">
+            <div class="card-title">🎯 Subagent 的核心价值：Context Boundary</div>
+            <ul>
+                <li><strong>不是"Agent 的一部分"</strong>，是完整独立的 Claude 实例</li>
+                <li><strong>核心价值 = Context Boundary</strong>：探索过程不污染主 Agent</li>
+                <li><strong>主 Agent 只接收 summary</strong>，不是完整的操作历史</li>
+                <li><strong>Persistent Memory</strong>（project scope）可让 Subagent 跨 Session 积累经验</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== SECTION 7: PRACTICE PATH ===== -->
+    <section id="practice">
+        <h2 data-chapter="第七章 · 实践路线">搭建每日学习内容消化输出的自动化 Workflow</h2>
+
+        <p>本章所有知识——Context 管理、CLAUDE.md、Skills、MCP、Hooks、Subagents——都是为了同一个目标服务的工具。这一节用<strong>分析过程 + 实践步骤</strong>，把这些工具组合成一个完整的自动化 workflow。</p>
+
+        <h3>需求分析</h3>
+
+        <div class="visual-box">
+            <h4>Workflow 目标</h4>
+            <pre><code>输入：
+  消化/ 目录下的
+  ├── 每节课学习笔记（HTML）
+  └── 学习资料（markdown + 图片）
+
+输出：
+  输出/ 目录下的
+  ├── 章总结-{主题}-深度学习笔记.html （本文这样的）
+  └── {章节号}-小红书内容包/
+      ├── 文案.md
+      └── 图片prompt.md</code></pre>
+        </div>
+
+        <h3>工具选型分析</h3>
+
+        <p>在动手之前，先用本章学到的决策框架，分析每个任务应该用什么工具：</p>
+
+        <table>
+            <thead>
+                <tr><th>任务</th><th>需要智能判断？</th><th>每次都执行？</th><th>选择</th><th>理由</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>读取并整合学习笔记</td><td>✅ 是</td><td>❌ 指定时才做</td><td><strong>CLAUDE.md</strong></td><td>需要理解内容脉络</td></tr>
+                <tr><td>生成章总结 HTML</td><td>✅ 是</td><td>❌ 指定时才做</td><td><strong>CLAUDE.md</strong></td><td>需要按知识脉络重组</td></tr>
+                <tr><td>小红书文案风格规范</td><td>-</td><td>-</td><td><strong>Skills</strong></td><td>可复用的"怎么做"，按需加载</td></tr>
+                <tr><td>配图 prompt 模板</td><td>-</td><td>-</td><td><strong>Skills</strong></td><td>可复用，贴纸风格固定规范</td></tr>
+                <tr><td>markdown 自动格式化</td><td>❌ 不需要</td><td>✅ 每次写文件</td><td><strong>Hook</strong></td><td>"每次写 md 就格式化" 一句话能说清</td></tr>
+                <tr><td>完成后 Git 提交</td><td>❌ 不需要</td><td>可选</td><td><strong>Hook（Stop）</strong></td><td>机械操作，不需要智能判断</td></tr>
+                <tr><td>审查 workflow 代码质量</td><td>✅ 是</td><td>❌ 按需</td><td><strong>Subagent</strong></td><td>需要 fresh eyes，避免认知偏差</td></tr>
+                <tr><td>连接外部服务</td><td>-</td><td>-</td><td><strong>MCP（暂不需要）</strong></td><td>数据都在本地，MCP 引入的 Context 成本不值得</td></tr>
+            </tbody>
+        </table>
+
+        <div class="insight-card">
+            <div class="card-title">💡 分析结论：CLAUDE.md + Skills + Hooks 是核心组合</div>
+            <p>不是每种工具都必须用。MCP 当前不需要，Subagent 只在审查 workflow 代码时需要，主要工作靠 CLAUDE.md（定义流程）+ Skills（定义风格）+ Hooks（确保机械操作不遗漏）。</p>
+        </div>
+
+        <h3>实践路线</h3>
+
+        <!-- Phase 1 -->
+        <div class="phase-card phase-1">
+            <div class="phase-header">
+                <span class="phase-badge badge-1">Phase 1</span>
+                <span class="phase-title">环境搭建与基础配置</span>
+                <span class="phase-timeline">第 1 天完成</span>
+            </div>
+            <div class="analysis-box">
+                <strong>分析思路：</strong> 首先要有结构清晰的项目目录，然后写 CLAUDE.md 让 Claude 知道项目是什么、规范在哪里。配一个最简单的 Hook（markdown 自动格式化）验证 Hooks 机制可以工作。
+            </div>
+            <ol>
+                <li><strong>创建项目文件夹结构</strong>
+                    <pre><code>D:/BUILD MYSELF/Anthropic courses/
+├── 消化/                    ← 每日学习资料存放
+│   └── YYYY-MM-DD/
+│       ├── 2.x.x-xxx-学习笔记.html
+│       └── impressive points.md
+├── 输出/                    ← 生成的内容存放
+│   └── YYYY-MM-DD/
+│       ├── 章总结-{主题}-深度学习笔记.html
+│       └── 小红书内容包/
+├── 规范/                    ← 规范文件目录
+│   ├── output-format.md     ← 章总结 HTML 规范
+│   ├── xiaohongshu-style.md ← 小红书文案风格
+│   └── workflow-rules.md    ← 工作流程规则
+└── CLAUDE.md               ← 主配置（引用规范文件）</code></pre>
+                </li>
+                <li><strong>编写 CLAUDE.md</strong>（直接引用规范文件，保持简洁）
+                    <pre><code># 学习笔记自动化 Workflow
+
+## 项目目标
+输入：消化/ 目录下的学习材料
+输出：输出/ 目录下的章总结 HTML + 小红书内容包
+
+## 规范文档
+@规范/workflow-rules.md
+@规范/output-format.md
+
+## 重要规则
+- 按知识脉络组织，不按课程顺序
+- 小红书文案调用 xiaohongshu-casual skill
+- 配图 prompt 调用 sd-image-prompt skill</code></pre>
+                </li>
+                <li><strong>配置第一个 Hook：markdown 自动格式化</strong>
+                    <pre><code>// .claude/settings.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "prettier --write \"$HOOK_TOOL_INPUT_PATH\" --parser markdown 2>/dev/null || true"
+        }]
+      }
+    ]
+  }
+}</code></pre>
+                </li>
+                <li><strong>验证：</strong> 启动 Claude，运行 <code>/context</code> 检查 CLAUDE.md 是否加载，写一个测试 md 文件验证 Hook 是否触发</li>
+            </ol>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase-card phase-2">
+            <div class="phase-header">
+                <span class="phase-badge badge-2">Phase 2</span>
+                <span class="phase-title">核心 Workflow 实现</span>
+                <span class="phase-timeline">第 2-3 天完成</span>
+            </div>
+            <div class="analysis-box">
+                <strong>分析思路：</strong> 核心 workflow 需要 Claude 理解内容、按知识脉络重组，这是"智能工作"，用 CLAUDE.md 中的任务描述来驱动。先手动测试流程，确保输出质量满意后再考虑自动化。
+            </div>
+            <ol>
+                <li><strong>编写 workflow-rules.md</strong>（详细的工作流程描述，包括：如何读取笔记、如何按知识脉络重组、如何生成 SVG 思维导图）</li>
+                <li><strong>编写 output-format.md</strong>（章总结 HTML 的 CSS 规范、卡片类型说明、字体规范等，直接从本文的 style 标签复制）</li>
+                <li><strong>手动测试第一次：</strong>
+                    <pre><code># 在 D:/BUILD MYSELF/Anthropic courses/ 目录启动 Claude
+claude
+
+# 输入命令
+请读取 消化/2026-05-02/ 下的所有学习笔记，
+按照 @规范/workflow-rules.md 和 @规范/output-format.md 的要求，
+生成章总结 HTML，保存到 输出/2026-05-02/ 目录</code></pre>
+                </li>
+                <li><strong>审查输出，记录需要改进的点</strong>，补充到 workflow-rules.md</li>
+                <li><strong>迭代 2-3 次</strong>直到输出质量满意</li>
+            </ol>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="phase-card phase-3">
+            <div class="phase-header">
+                <span class="phase-badge badge-3">Phase 3</span>
+                <span class="phase-title">Skills 扩展：小红书内容包</span>
+                <span class="phase-timeline">第 4-5 天完成</span>
+            </div>
+            <div class="analysis-box">
+                <strong>分析思路：</strong> 小红书文案和配图 prompt 是独立的、可复用的能力，风格规范很具体。这正是 Skills 的使用场景——把"怎么写"封装成技能，让 Claude 按需调用。
+            </div>
+            <ol>
+                <li><strong>创建 xiaohongshu-casual Skill</strong>
+                    <pre><code>---
+name: xiaohongshu-casual
+description: 口语感悟风的小红书文案，记录学习心路历程，有共鸣感
+---
+
+## 文案风格
+真实的学习过程，不是固定模板。
+开头：最近在学xxx，今天有个发现...
+核心：2-3个关键洞察（有个人视角）
+心路：遇到的困惑 → 研究 → 原来如此
+结尾：完整笔记在评论区👇
+
+## 禁止
+- AI 味、营销号腔调
+- 罗列知识点而没有情感
+- "总结一下" 这种套话</code></pre>
+                </li>
+                <li><strong>创建 sd-image-prompt Skill</strong>（贴纸风格，描述每张图的内容、排版、文字位置）</li>
+                <li><strong>测试 Skill 调用：</strong>
+                    <pre><code># 验证 Skills 被正确加载
+/context
+# 查看 Skills 部分是否包含 xiaohongshu-casual
+
+# 测试生成小红书文案
+请基于今天的章总结，调用 xiaohongshu-casual skill，
+生成 8-10 张图的文案和配图 prompt</code></pre>
+                </li>
+                <li><strong>调整 Skill 内容</strong>直到风格满意，记录好的 prompt 示例到 Skill 里</li>
+            </ol>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="phase-card phase-4">
+            <div class="phase-header">
+                <span class="phase-badge badge-4">Phase 4</span>
+                <span class="phase-title">自动化触发：Hooks 扩展</span>
+                <span class="phase-timeline">第 6-7 天完成</span>
+            </div>
+            <div class="analysis-box">
+                <strong>分析思路：</strong> 手动流程稳定后，再考虑用 Hooks 自动化机械部分。Stop Hook 可以在 Claude 完成任务后自动做 Git 提交。注意：生成内容的质量检查仍需人工，不要过度自动化。
+            </div>
+            <ol>
+                <li><strong>添加 Stop Hook：完成后自动 Git 提交</strong>
+                    <pre><code>// .claude/settings.json 更新
+{
+  "hooks": {
+    "PostToolUse": [...之前的格式化 hook...],
+    "Stop": [
+      {
+        "hooks": [{
+          "type": "command",
+          "command": "cd 'D:/BUILD MYSELF/Anthropic courses' && git add 输出/ && git status"
+        }]
+      }
+    ]
+  }
+}</code></pre>
+                    <p>注意：只 <code>git add</code>，不自动 commit，保留人工审查 → 手动 commit 的环节。</p>
+                </li>
+                <li><strong>可选：添加 PreToolUse Hook 防止意外写入规范目录</strong>
+                    <pre><code># check-paths.sh
+INPUT_PATH="$HOOK_TOOL_INPUT_PATH"
+if echo "$INPUT_PATH" | grep -q "规范/"; then
+  echo "⚠️ 你要修改规范文件，请确认是有意为之" >&2
+  exit 2  # 注入警告消息，但不阻止
+fi
+exit 0</code></pre>
+                </li>
+                <li><strong>测试完整流程：</strong> 从读取笔记到输出章总结 + 小红书内容包 + 自动 git add，确保每个环节正确</li>
+            </ol>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="phase-card phase-5">
+            <div class="phase-header">
+                <span class="phase-badge badge-5">Phase 5</span>
+                <span class="phase-title">质量保障：Subagent Code Review</span>
+                <span class="phase-timeline">Workflow 稳定后</span>
+            </div>
+            <div class="analysis-box">
+                <strong>分析思路：</strong> 当 workflow 脚本（规范文件 + Hooks 脚本）有一定规模后，用 Subagent 做代码审查。这时 Subagent 的"独立视角"价值才能发挥——它不受"我写的所以是对的"的认知惯性影响。
+            </div>
+            <ol>
+                <li><strong>创建 code-reviewer subagent 配置</strong>（参考第六章的示例）</li>
+                <li><strong>调用 Subagent 审查 workflow 脚本</strong>
+                    <pre><code># 主 Agent 指令
+请调用 code-reviewer subagent，审查以下文件：
+- .claude/settings.json（Hooks 配置）
+- scripts/check-paths.sh（安全检查脚本）
+- 规范/workflow-rules.md（流程规范）
+
+重点检查：
+- Hooks 配置是否有潜在安全问题
+- 脚本的错误处理是否完善
+- 规范文档是否有歧义</code></pre>
+                </li>
+                <li><strong>处理 Reviewer 发现的问题</strong>，用 <code>/commit-push-pr</code> 提交改进</li>
+                <li><strong>（可选）开启 Subagent 的 Persistent Memory</strong>，让 Reviewer 记住项目历史问题，避免重复提出已知问题</li>
+            </ol>
+        </div>
+
+        <h3>完整架构总览</h3>
+
+        <div class="visual-box">
+            <pre><code>D:/BUILD MYSELF/Anthropic courses/
+├── CLAUDE.md                        ← 启动时加载，定义项目规则和引用规范
+├── .claude/
+│   └── settings.json               ← Hooks 配置（格式化 + 安全检查）
+├── skills/                          ← 可复用技能
+│   ├── xiaohongshu-casual/
+│   │   └── SKILL.md               ← 口语风小红书文案规范
+│   └── sd-image-prompt/
+│       └── SKILL.md               ← 贴纸风配图 prompt 模板
+├── 规范/                             ← 规范文档（CLAUDE.md @引用）
+│   ├── workflow-rules.md          ← 完整工作流程描述
+│   ├── output-format.md           ← 章总结 HTML 格式规范
+│   └── xiaohongshu-style.md       ← 小红书内容包规范
+├── 消化/                             ← 输入：每日学习材料
+│   └── YYYY-MM-DD/
+└── 输出/                             ← 输出：生成内容
+    └── YYYY-MM-DD/
+
+每日使用方式：
+1. 启动 claude（自动加载 CLAUDE.md + Skills 目录）
+2. "读取 消化/2026-05-02/ 生成章总结和小红书内容包"
+3. Claude 执行：读笔记 → 整合 → 调用 Skills → 生成 HTML + 文案
+4. Stop Hook 自动 git add
+5. 人工审查 → git commit → 发布</code></pre>
+        </div>
+
+        <div class="key-takeaway">
+            <div class="card-title">🎯 核心设计原则回顾</div>
+            <table>
+                <thead><tr><th>工具</th><th>在本 Workflow 的角色</th><th>判断依据</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>CLAUDE.md</strong></td><td>定义"做什么"的核心流程</td><td>需要智能判断的任务</td></tr>
+                    <tr><td><strong>Skills</strong></td><td>封装文案风格等可复用的"怎么做"</td><td>独立、可复用、按需加载</td></tr>
+                    <tr><td><strong>Hooks</strong></td><td>格式化、安全检查等机械操作</td><td>"每次 X 就 Y"能一句话说清</td></tr>
+                    <tr><td><strong>Subagent</strong></td><td>代码质量审查、独立视角</td><td>需要 fresh eyes，不受认知惯性影响</td></tr>
+                    <tr><td><strong>MCP</strong></td><td>暂不需要（数据在本地）</td><td>无外部数据源依赖</td></tr>
+                    <tr><td><strong>/compact</strong></td><td>长篇笔记生成时适时压缩</td><td>Context 超过 60% 主动触发</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="insight-card">
+            <div class="card-title">💡 最后的思考：工具是手段，流程是目的</div>
+            <p>学完这些工具后，最大的收获不是"知道 Hooks 怎么配置"或"Subagent 的 API 是什么"，而是建立了一套<strong>决策框架</strong>：面对一个任务，先问它是"智能工作"还是"机械操作"，再问它是"启动时就要知道的规则"还是"用到时再加载的技能"。这套框架才是设计 AI 工作流的核心思维。</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="margin-top: 80px; padding-top: 40px; border-top: 2px solid var(--border); text-align: center; color: var(--text-muted);">
+        <p style="font-size: 0.95em;">这是我的个人学习笔记 — 记录 Claude Code Customization 的理解过程</p>
+        <p style="font-size: 0.85em; margin-top: 8px;">2026年5月2日 | Claude Code 101 | 创建者 Nina & Claude</p>
+    </footer>
+
+</div>
+
+<a href="#" class="back-to-top" id="backToTop">↑</a>
+
+<script>
+const backToTop = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+    backToTop.classList.toggle('visible', window.pageYOffset > 300);
+});
+backToTop.addEventListener('click', e => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+        e.preventDefault();
+        const t = document.querySelector(this.getAttribute('href'));
+        if (t) t.scrollIntoView({ behavior: 'smooth' });
+    });
+});
+</script>
+</body>
+</html>
