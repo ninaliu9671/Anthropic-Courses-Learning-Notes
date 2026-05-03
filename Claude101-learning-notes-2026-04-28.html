@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude 101 学习笔记 · 2026.04.28</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #0f0f0e;
+  --surface: #1a1a18;
+  --surface2: #222220;
+  --border: #2e2e2b;
+  --gold: #c8a96e;
+  --teal: #7eb8a4;
+  --purple: #a07fc0;
+  --red: #e07b7b;
+  --text: #e8e5de;
+  --muted: #888880;
+  --dim: #555550;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Serif SC', serif;
+  font-weight: 300;
+  line-height: 1.8;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+/* ── Header ── */
+.header {
+  padding-bottom: 2.5rem;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid var(--border);
+}
+.meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  margin-bottom: 0.8rem;
+}
+h1 {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+.sub { color: var(--muted); font-size: 0.9rem; }
+
+/* ── Block headers ── */
+.block {
+  margin-bottom: 4rem;
+}
+.block-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.block-num::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.block-num.gold { color: var(--gold); }
+.block-num.teal { color: var(--teal); }
+.block-num.purple { color: var(--purple); }
+.block-num.red { color: var(--red); }
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1.2rem;
+  line-height: 1.4;
+}
+h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 1.8rem 0 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+p { color: #ccc8be; font-size: 0.93rem; margin-bottom: 0.8rem; }
+
+strong { color: var(--text); font-weight: 600; }
+
+/* ── Callout ── */
+.callout {
+  border-left: 2px solid var(--gold);
+  padding: 0.9rem 1.2rem;
+  background: rgba(200,169,110,0.05);
+  border-radius: 0 6px 6px 0;
+  margin: 1.4rem 0;
+}
+.callout.teal { border-color: var(--teal); background: rgba(126,184,164,0.05); }
+.callout.purple { border-color: var(--purple); background: rgba(160,127,192,0.05); }
+.callout.red { border-color: var(--red); background: rgba(224,123,123,0.05); }
+.callout p { margin: 0; font-size: 0.9rem; }
+.cl {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 0.4rem;
+}
+.callout.teal .cl { color: var(--teal); }
+.callout.purple .cl { color: var(--purple); }
+.callout.red .cl { color: var(--red); }
+
+/* ── Agent permission tiers ── */
+.tier-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.tier {
+  background: var(--surface);
+  padding: 1.1rem 1rem;
+}
+.tier-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+}
+.tier-name.gold { color: var(--gold); }
+.tier-name.teal { color: var(--teal); }
+.tier-name.purple { color: var(--purple); }
+.tier-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--dim);
+  margin-bottom: 0.9rem;
+  letter-spacing: 0.06em;
+}
+.feat {
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 0.18rem 0;
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 0.45em;
+}
+.y { background: var(--teal); }
+.n { background: var(--border); }
+.arrow-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.2rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+}
+.arrow-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold), var(--teal), var(--purple));
+  position: relative;
+}
+.arrow-line::after {
+  content: '▶';
+  position: absolute;
+  right: -1px;
+  top: -6px;
+  font-size: 0.6rem;
+  color: var(--purple);
+}
+
+/* ── Prompt box ── */
+.prompt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.pg-cell {
+  background: var(--surface);
+  padding: 1.1rem;
+}
+.pg-num {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.pg-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+.pg-cell p { font-size: 0.8rem; color: var(--muted); margin: 0; }
+
+/* ── 4D grid ── */
+.fourd {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.fd {
+  background: var(--surface);
+  padding: 1rem 1.1rem;
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+.fd-letter {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 1.8rem;
+}
+.fd-text {}
+.fd-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.25rem; }
+.fd p { font-size: 0.8rem; color: var(--muted); margin: 0; }
+
+/* ── Connector table ── */
+.conn-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+  font-size: 0.83rem;
+}
+.cg-h {
+  background: var(--surface2);
+  padding: 0.6rem 1rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.cg-h.t { color: var(--teal); }
+.cg-h.g { color: var(--gold); }
+.cg-r {
+  background: var(--surface);
+  padding: 0.65rem 1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.cg-c {
+  background: var(--surface);
+  padding: 0.65rem 1rem;
+  color: #ccc8be;
+}
+
+/* ── Research modes ── */
+.res-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1.5rem 0;
+}
+.res {
+  background: var(--surface);
+  padding: 1rem;
+}
+.res.hl { background: rgba(160,127,192,0.08); }
+.res-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 0.3rem;
+}
+.res-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+.res p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+
+/* ── Big quote ── */
+.big-q {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.8rem;
+  margin: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+.big-q::before {
+  content: '"';
+  position: absolute;
+  top: -0.5rem; left: 1.2rem;
+  font-size: 6rem;
+  color: rgba(200,169,110,0.06);
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+.big-q p {
+  font-size: 1rem;
+  line-height: 1.95;
+  color: var(--text);
+  position: relative;
+  margin: 0;
+}
+
+/* ── Divider ── */
+hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+
+/* ── Footer ── */
+footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 600px) {
+  .tier-wrap, .prompt-grid, .fourd, .res-row { grid-template-columns: 1fr; }
+  .conn-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="meta">CLAUDE 101 · 学习笔记 · 2026.04.28</div>
+  <h1>学完才知道——<br><span style="color:var(--gold)">Claude 不是 chatbot</span></h1>
+  
+</div>
+
+
+<!-- ═══════════ BLOCK 1 ═══════════ -->
+<div class="block">
+  <div class="block-num gold">板块一 · 我更认识 Claude 了</div>
+
+  <h2>Claude 的本质：一个 Agent，三种交互形态</h2>
+
+  <p>课程一开始就说 Claude 不是普通 chatbot，而是 <strong>thinking partner</strong>。学习的过程中我也越来越认识到——<strong>Claude 的整个设计逻辑就是 Agent（包括 Chat 在内）</strong>：能推理、能规划、能调用工具、能循环执行。Chat、Cowork、Code 的区别不是"Chatbot or Agent"，而是<strong>权限边界的递增</strong>。</p>
+
+  <div class="arrow-row">
+    <span>权限边界</span>
+    <div class="arrow-line"></div>
+    <span>递增</span>
+  </div>
+
+  <div class="tier-wrap">
+    <div class="tier">
+      <div class="tier-name gold">Chat</div>
+      <div class="tier-tag">claude.ai · 移动 · 桌面</div>
+      <div class="feat"><span class="dot y"></span>对话 / 写作 / 分析</div>
+      <div class="feat"><span class="dot y"></span>Web Search & Deep Research</div>
+      <div class="feat"><span class="dot y"></span>连接云端工具（Web Connectors）</div>
+      <div class="feat"><span class="dot y"></span>Artifacts（沙箱输出）</div>
+      <div class="feat"><span class="dot n"></span>本地文件读写</div>
+      <div class="feat"><span class="dot n"></span>后台持续运行</div>
+    </div>
+    <div class="tier">
+      <div class="tier-name teal">Cowork</div>
+      <div class="tier-tag">Desktop · 付费版</div>
+      <div class="feat"><span class="dot y"></span>本地文件夹读写</div>
+      <div class="feat"><span class="dot y"></span>定时任务（Scheduled Tasks）</div>
+      <div class="feat"><span class="dot y"></span>多子任务并行（Subagents）</div>
+      <div class="feat"><span class="dot y"></span>桌面控制（Computer Use）</div>
+      <div class="feat"><span class="dot y"></span>手机派任务→电脑执行（Dispatch）</div>
+      <div class="feat"><span class="dot n"></span>终端命令执行</div>
+    </div>
+    <div class="tier">
+      <div class="tier-name purple">Code</div>
+      <div class="tier-tag">Desktop · CLI · 开发者</div>
+      <div class="feat"><span class="dot y"></span>终端命令 / Git / CI</div>
+      <div class="feat"><span class="dot y"></span>完整本地文件系统</div>
+      <div class="feat"><span class="dot y"></span>可视化 Diff</div>
+      <div class="feat"><span class="dot y"></span>Ask / Code / Plan 三种控制模式</div>
+      <div class="feat"><span class="dot y"></span>本地 + 远程（GitHub）环境</div>
+      <div class="feat"><span class="dot y"></span>多 Session 并行</div>
+    </div>
+  </div>
+
+  <p style="font-size:0.83rem;color:var(--muted)">注：Cowork 和 Code 底层是同一套引擎（Claude Code 架构）——Cowork 是面向知识工作者的 GUI 封装，Code 是开发者的 CLI/IDE 环境。</p>
+
+
+  <h3>Memory：Agent 的"设计文档"</h3>
+
+  <p>刚开始用 Claude 的时候没敢开 Memory，担心 AI 记太多会"变笨"。今天才知道，Claude 的 Memory 不是 read context，而是<strong>不断提炼用户画像</strong>：你是谁、你的偏好、你的工作方式。</p>
+
+  <div class="callout teal">
+    <div class="cl">重新理解 Memory</div>
+    <p>这就很 Agent——背后有一份随时可编辑的"设置文档"，它在学习你是谁，你也可以随时去 Settings 查看、修改、删除任何一条记忆。再加上个人偏好设置（Preferences）和 Styles，这套系统整体就是在让 Claude 越来越适配你这个用户。</p>
+  </div>
+</div>
+
+
+<!-- ═══════════ BLOCK 2 ═══════════ -->
+<div class="block">
+  <div class="block-num teal">板块二 · 方法论速览</div>
+
+  <h2>用好 Claude 的底层逻辑</h2>
+
+  <h3>Prompt 三要素</h3>
+  <p>和 Claude 说话，就像和一个聪明但<strong>不了解你背景</strong>的同事说话——信息越完整，结果越准。</p>
+
+  <div class="prompt-grid">
+    <div class="pg-cell">
+      <div class="pg-num" style="color:var(--gold)">①</div>
+      <div class="pg-label">Setting the Stage</div>
+      <p>你是谁？目标是什么？背景如何？给 Claude 足够的上下文。</p>
+    </div>
+    <div class="pg-cell">
+      <div class="pg-num" style="color:var(--teal)">②</div>
+      <div class="pg-label">Defining the Task</div>
+      <p>你想让 Claude 做什么？写、分析、搭建、研究——动作要明确。</p>
+    </div>
+    <div class="pg-cell">
+      <div class="pg-num" style="color:var(--purple)">③</div>
+      <div class="pg-label">Specifying Rules</div>
+      <p>格式、语气、长度、限制条件。给例子比说规则更有效。</p>
+    </div>
+  </div>
+
+  <h3>4D Framework for AI Fluency</h3>
+  <p>把"会用 AI"这件事拆成四个可操作的维度。</p>
+
+  <div class="fourd">
+    <div class="fd">
+      <div class="fd-letter" style="color:var(--gold)">D</div>
+      <div class="fd-text">
+        <div class="fd-name">Delegation · 分配</div>
+        <p>哪些任务交给 AI，哪些留给人——战略判断，不是所有事都该 AI 做。</p>
+      </div>
+    </div>
+    <div class="fd">
+      <div class="fd-letter" style="color:var(--teal)">D</div>
+      <div class="fd-text">
+        <div class="fd-name">Description · 描述</div>
+        <p>有效传达意图——就是写好 prompt 的能力，让 AI 真正理解你要什么。</p>
+      </div>
+    </div>
+    <div class="fd">
+      <div class="fd-letter" style="color:var(--purple)">D</div>
+      <div class="fd-text">
+        <div class="fd-name">Discernment · 辨别</div>
+        <p>批判性评估输出——不照单全收，判断质量、准确性，知道哪里需要人工审查。</p>
+      </div>
+    </div>
+    <div class="fd">
+      <div class="fd-letter" style="color:var(--red)">D</div>
+      <div class="fd-text">
+        <div class="fd-name">Diligence · 负责</div>
+        <p>对 AI 协助完成的工作承担责任——不能因为"AI 写的"就免责。</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Evaluation：先测试，再信任</h3>
+
+  <p>在把 Claude 深度嵌入某个工作流之前，做一次评估——这是方法论落地的关键一步，也是真正开始用 AI 的起点。</p>
+
+  <div class="callout">
+    <div class="cl">简单 Eval 四步</div>
+    <p>
+      <strong>① 收集样本</strong>——找 5–10 个你日常做的同类任务的真实案例（你写的报告、你的分析）<br>
+      <strong>② 写测试 prompt</strong>——用你实际工作时有的上下文，让 Claude 做同样的事<br>
+      <strong>③ 对比输出</strong>——关键信息有没有？逻辑对不对？语气合不合？哪里它做得比你好？<br>
+      <strong>④ 迭代 prompt</strong>——根据缺口补充上下文或示例，确定哪些步骤需要人工把关
+    </p>
+  </div>
+</div>
+
+
+<!-- ═══════════ BLOCK 3 ═══════════ -->
+<div class="block">
+  <div class="block-num purple">板块三 · 让 Claude 触达更多</div>
+
+  <h2>Connectors + Research 模式</h2>
+
+  <h3>Connectors：MCP = AI 的 USB-C</h3>
+
+  <p>Connector 把 Claude 变成"有信息的协作者"——不必手动复制粘贴，Claude 直接读你的工具、在里面采取行动。背后的技术标准叫 <strong>MCP（Model Context Protocol）</strong>，一个通用接口，任何工具都能接入。</p>
+
+  <div class="conn-grid">
+    <div class="cg-h">类型</div>
+    <div class="cg-h t">Web Connectors（远程）</div>
+    <div class="cg-h g">Desktop Extensions（本地）</div>
+
+    <div class="cg-r">连接</div>
+    <div class="cg-c">Gmail · Google Drive · Slack · Notion · Asana · Linear · Stripe…</div>
+    <div class="cg-c">本地文件系统 · 剪贴板 · 本地应用（如 Figma）</div>
+
+    <div class="cg-r">同步</div>
+    <div class="cg-c">跨设备同步 ✓，Chat / Cowork / Code 均可用</div>
+    <div class="cg-c">不跨设备 ✗，仅 Claude Desktop / Code</div>
+
+    <div class="cg-r">适合</div>
+    <div class="cg-c">日常 SaaS 工具，随时随地访问</div>
+    <div class="cg-c">私人本地数据，权限更深、延迟更低</div>
+  </div>
+
+  <p style="font-size:0.82rem;color:var(--muted)">Chrome 扩展是补位工具——给 Claude 补了"浏览器里的手"，能操作任何没有 API 的网站，填补 Connector 覆盖不到的空白。</p>
+
+
+  <h3>Research 模式：场景不同，开的模式不同</h3>
+
+  <div class="res-row">
+    <div class="res">
+      <div class="res-tag">速查</div>
+      <div class="res-name">Web Search</div>
+      <p>单次联网，查事实、查近况。快，浅。</p>
+    </div>
+    <div class="res hl">
+      <div class="res-tag">深度研究 ★</div>
+      <div class="res-name" style="color:var(--purple)">Deep Research</div>
+      <p>多轮搜索，自主规划路径，输出结构化报告。真正的 Agent 行为。</p>
+    </div>
+    <div class="res">
+      <div class="res-tag">深度推理</div>
+      <div class="res-name">Extended Thinking</div>
+      <p>延长内部推理链，用于复杂判断。不联网，靠模型自身深度。</p>
+    </div>
+    <div class="res">
+      <div class="res-tag">企业专属</div>
+      <div class="res-name">Enterprise Search</div>
+      <p>接入内部知识库，搜私有数据源。Team / Enterprise 可用。</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════ PERSONAL INSIGHT ═══════════ -->
+<hr>
+
+<div class="block">
+  <div class="block-num red">个人思考 · AI 时代对人的要求变了</div>
+
+  <h2>当 AI 可以做这些事，人的价值在哪里？</h2>
+
+  <p>看到 Research 功能，作为 Finance&Accounting背景的人，第一反应是回想起读书时打商赛和金融实习的经历，<strong>desktop research、financial modeling、data analysis、due diligence support</strong>……这些最被看重的技能，现在都可以交给 AI 了。</p>
+
+  <p>Finance 可以用 Claude 做 financial models、draft investment memos；Marketing 做 campaign analysis；Legal 做 discovery review……<strong>每一个曾经需要人来执行的分析类工作，现在都有了对应的 AI 路径。</strong>很多人已经给自己搭了一套 Agents——每个 Agent 负责一个角色，一个人就是一支队伍。</p>
+
+  <div class="big-q">
+    <p>很多人上班，有人告诉他们该做什么——执行有价值。而进入 AI 时代，执行层被 AI 接管。对“人”而言，相比"做事的能力"，<strong>知道要做什么</strong>可能越来越重要了。能提出需求，懂底层逻辑，会验证结果，和 AI 打好配合——是我们在 AI 时代需要去不断增进的。<br><br>
+   </p>
+  </div>
+
+ </div>
+
+
+<footer>
+  <span>CLAUDE 101 · 学习笔记</span>
+  <span>2026.04.28 · Nina</span>
+</footer>
+
+</body>
+</html>
