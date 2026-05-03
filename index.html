@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 学习笔记 — 目录</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:        #1a1a2e;
+  --ink-soft:   #3d3d5c;
+  --ink-muted:  #6b6b8a;
+  --accent:     #c17d4a;
+  --accent-dim: #d4a574;
+  --rule:       #c8bfb0;
+  --rule-light: #e8e2da;
+  --bg:         #faf8f5;
+  --bg-warm:    #f4f0ea;
+  --bg-card:    #ffffff;
+
+  --f-serif: 'Noto Serif SC', 'Georgia', serif;
+  --f-sans:  'Noto Sans SC', 'system-ui', sans-serif;
+  --f-mono:  'JetBrains Mono', 'Consolas', monospace;
+  --r: 8px;
+  --shadow: 0 2px 12px rgba(26,26,46,.08);
+  --shadow-hover: 0 6px 24px rgba(26,26,46,.14);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--f-serif);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.8;
+  min-height: 100vh;
+}
+
+/* ── 页眉 ── */
+header {
+  background: var(--ink);
+  color: #fff;
+  padding: 64px 40px 56px;
+  text-align: center;
+}
+.header-label {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  margin-bottom: 16px;
+}
+header h1 {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin-bottom: 14px;
+}
+header h1 em {
+  color: var(--accent-dim);
+  font-style: normal;
+}
+header p {
+  font-family: var(--f-sans);
+  font-size: 15px;
+  color: #a0a0c0;
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+.header-rule {
+  width: 48px;
+  height: 2px;
+  background: var(--accent);
+  margin: 24px auto 0;
+  border-radius: 1px;
+}
+
+/* ── 内容区 ── */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 32px 80px;
+}
+
+.section-label {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule-light);
+}
+
+/* ── 笔记卡片网格 ── */
+.notes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 60px;
+}
+
+.note-card {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow .2s, transform .2s, border-color .2s;
+}
+.note-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+
+.card-top {
+  padding: 24px 24px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.card-num {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 3px 10px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  letter-spacing: .05em;
+}
+.card-title-block { flex: 1; }
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 5px;
+}
+.card-subtitle {
+  font-family: var(--f-sans);
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.card-divider {
+  height: 1px;
+  background: var(--rule-light);
+  margin: 18px 24px 0;
+}
+
+.card-topics {
+  padding: 14px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+.topic-tag {
+  font-family: var(--f-sans);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  background: var(--bg-warm);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  padding: 2px 8px;
+  line-height: 1.6;
+}
+
+.card-footer {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--rule-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.card-read {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.card-read::after {
+  content: '→';
+  transition: transform .15s;
+}
+.note-card:hover .card-read::after {
+  transform: translateX(4px);
+}
+
+/* ── 概念速查条 ── */
+.concepts-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+}
+.concepts-bar h3 {
+  font-family: var(--f-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 16px;
+}
+.concepts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.concept-chip {
+  font-family: var(--f-sans);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 4px 12px;
+  line-height: 1.5;
+}
+.concept-chip strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ── 页脚 ── */
+footer {
+  background: var(--bg-warm);
+  border-top: 1px solid var(--rule-light);
+  padding: 28px 40px;
+  text-align: center;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 680px) {
+  header { padding: 40px 24px 36px; }
+  header h1 { font-size: 1.8rem; }
+  .container { padding: 40px 20px 60px; }
+  .notes-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ 页眉 ══ -->
+<header>
+  <div class="header-label">Anthropic Courses · Learn Claude Code</div>
+  <h1>Claude Code<br><em>学习笔记</em></h1>
+  <p>从零理解 Agent Loop，到记忆系统、五大定制工具，到综合实践——四篇笔记，完整的 Claude Code 学习路径。</p>
+  <div class="header-rule"></div>
+</header>
+
+<!-- ══ 内容区 ══ -->
+<div class="container">
+
+  <div class="section-label">四篇笔记</div>
+
+  <div class="notes-grid">
+
+    <!-- 笔记 I -->
+    <a class="note-card" href="claude-code-notes-I.html">
+      <div class="card-top">
+        <span class="card-num">笔记 I</span>
+        <div class="card-title-block">
+          <div class="card-title">Agent、Agent Loop 与 Claude Code</div>
+          <div class="card-subtitle">从零建立认知地基</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-topics">
+        <span class="topic-tag">Chat vs Code</span>
+        <span class="topic-tag">Agent 光谱</span>
+        <span class="topic-tag">Agent Loop</span>
+        <span class="topic-tag">Write-back</span>
+        <span class="topic-tag">Harness</span>
+        <span class="topic-tag">Context Window</span>
+        <span class="topic-tag">Tools</span>
+        <span class="topic-tag">Permission 模式</span>
+        <span class="topic-tag">Explore→Plan→Code→Commit</span>
+      </div>
+      <div class="card-footer">
+        <span>认知地基 · Agent Loop · 工作流</span>
+        <span class="card-read">阅读</span>
+      </div>
+    </a>
+
+    <!-- 笔记 II -->
+    <a class="note-card" href="claude-code-notes-II.html">
+      <div class="card-top">
+        <span class="card-num">笔记 II</span>
+        <div class="card-title-block">
+          <div class="card-title">记忆系统</div>
+          <div class="card-subtitle">从 Session 内管理到跨 Session 持久化</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-topics">
+        <span class="topic-tag">无状态本质</span>
+        <span class="topic-tag">Context Window 消耗</span>
+        <span class="topic-tag">/context · /compact · /clear</span>
+        <span class="topic-tag">Auto Memory</span>
+        <span class="topic-tag">Persistent Memory</span>
+        <span class="topic-tag">四种记忆类型</span>
+        <span class="topic-tag">三种 Scope</span>
+        <span class="topic-tag">MEMORY.md 两层架构</span>
+        <span class="topic-tag">Dream Agent</span>
+      </div>
+      <div class="card-footer">
+        <span>Session 管理 · 跨 Session 记忆</span>
+        <span class="card-read">阅读</span>
+      </div>
+    </a>
+
+    <!-- 笔记 III -->
+    <a class="note-card" href="claude-code-notes-III.html">
+      <div class="card-top">
+        <span class="card-num">笔记 III</span>
+        <div class="card-title-block">
+          <div class="card-title">五大定制工具</div>
+          <div class="card-subtitle">从给 Claude 写说明书到连接外部世界</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-topics">
+        <span class="topic-tag">CLAUDE.md</span>
+        <span class="topic-tag">@ 引用语法</span>
+        <span class="topic-tag">Skills</span>
+        <span class="topic-tag">两层加载模型</span>
+        <span class="topic-tag">SkillRegistry</span>
+        <span class="topic-tag">MCP</span>
+        <span class="topic-tag">Subagent</span>
+        <span class="topic-tag">Code Review 场景</span>
+        <span class="topic-tag">Hooks</span>
+        <span class="topic-tag">退出码协议</span>
+      </div>
+      <div class="card-footer">
+        <span>CLAUDE.md · Skills · MCP · Subagent · Hooks</span>
+        <span class="card-read">阅读</span>
+      </div>
+    </a>
+
+    <!-- 笔记 IV -->
+    <a class="note-card" href="claude-code-notes-IV.html">
+      <div class="card-top">
+        <span class="card-num">笔记 IV</span>
+        <div class="card-title-block">
+          <div class="card-title">整合与实践</div>
+          <div class="card-subtitle">把所有知识串成一张地图，用真实项目跑一遍</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-topics">
+        <span class="topic-tag">三层结构全景图</span>
+        <span class="topic-tag">6对概念辨析</span>
+        <span class="topic-tag">决策框架</span>
+        <span class="topic-tag">学习笔记 Workflow</span>
+        <span class="topic-tag">Explore→Plan→Code</span>
+        <span class="topic-tag">记忆管理实践</span>
+        <span class="topic-tag">Troubleshooting Guide</span>
+        <span class="topic-tag">持续迭代心态</span>
+      </div>
+      <div class="card-footer">
+        <span>综合辨析 · 大实践 · 系统思维</span>
+        <span class="card-read">阅读</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- 概念速查 -->
+  <div class="section-label">涵盖的核心概念</div>
+  <div class="concepts-bar">
+    <div class="concepts-list">
+      <span class="concept-chip"><strong>Agent Loop</strong></span>
+      <span class="concept-chip"><strong>Write-back</strong></span>
+      <span class="concept-chip"><strong>Harness</strong></span>
+      <span class="concept-chip"><strong>Context Window</strong></span>
+      <span class="concept-chip"><strong>Permission 模式</strong></span>
+      <span class="concept-chip"><strong>Auto Memory</strong></span>
+      <span class="concept-chip"><strong>Persistent Memory</strong></span>
+      <span class="concept-chip"><strong>Dream Agent</strong></span>
+      <span class="concept-chip"><strong>CLAUDE.md</strong></span>
+      <span class="concept-chip"><strong>Skills</strong></span>
+      <span class="concept-chip"><strong>SkillRegistry</strong></span>
+      <span class="concept-chip"><strong>MCP</strong></span>
+      <span class="concept-chip"><strong>Subagent</strong></span>
+      <span class="concept-chip"><strong>Hooks</strong></span>
+      <span class="concept-chip"><strong>/compact · /clear</strong></span>
+      <span class="concept-chip">两层加载模型</span>
+      <span class="concept-chip">退出码协议</span>
+      <span class="concept-chip">MEMORY.md 两层架构</span>
+      <span class="concept-chip">三种 Scope</span>
+      <span class="concept-chip">Code Review 场景</span>
+      <span class="concept-chip">Explore→Plan→Code→Commit</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ 页脚 ══ -->
+<footer>
+  <div>基于 Anthropic Courses · Learn Claude Code &nbsp;·&nbsp; Nina &amp; Claude &nbsp;·&nbsp; 2026-05-03</div>
+</footer>
+
+</body>
+</html>
