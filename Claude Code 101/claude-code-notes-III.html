@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 学习笔记III</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── 设计令牌 ── */
+:root {
+  --ink:        #1a1a2e;
+  --ink-soft:   #3d3d5c;
+  --ink-muted:  #6b6b8a;
+  --accent:     #c17d4a;
+  --accent-dim: #d4a574;
+  --rule:       #c8bfb0;
+  --rule-light: #e8e2da;
+  --bg:         #faf8f5;
+  --bg-warm:    #f4f0ea;
+  --bg-card:    #ffffff;
+  --blue-tint:  #eef4fb;
+  --blue-line:  #3b76c4;
+  --green-tint: #edf7f0;
+  --green-line: #2e8b57;
+  --amber-tint: #fdf6ec;
+  --amber-line: #c17d4a;
+  --red-tint:   #fdf0f0;
+  --red-line:   #c04040;
+
+  --f-serif: 'Noto Serif SC', 'Georgia', serif;
+  --f-sans:  'Noto Sans SC', 'system-ui', sans-serif;
+  --f-mono:  'JetBrains Mono', 'Consolas', monospace;
+
+  --r: 6px;
+  --shadow: 0 1px 4px rgba(26,26,46,.08);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Base ── */
+body {
+  font-family: var(--f-serif);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+/* ── Layout ── */
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+nav.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--ink);
+  color: #d0cce8;
+  padding: 36px 0 60px;
+  font-family: var(--f-sans);
+  font-size: 13px;
+}
+.sidebar .logo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 16px;
+}
+.sidebar a {
+  display: block;
+  padding: 5px 20px;
+  color: #a0a0c0;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  line-height: 1.5;
+}
+.sidebar a:hover,
+.sidebar a.active {
+  color: #fff;
+  border-left-color: var(--accent);
+}
+.sidebar .nav-module {
+  font-weight: 600;
+  color: #c8c4e0;
+  padding: 14px 20px 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  text-decoration: none;
+  transition: color .15s;
+}
+a.nav-module:hover { color: #fff; }
+
+/* ── Main ── */
+main {
+  padding: 56px 72px 80px 64px;
+  max-width: 820px;
+}
+
+/* ── 文章标题页 ── */
+.title-block {
+  padding-bottom: 36px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 48px;
+}
+.title-block h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.title-block .meta {
+  font-family: var(--f-sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 20px;
+}
+.title-block .meta span::before { content: '— '; }
+
+/* ── 模块标题 ── */
+.module-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 52px 0 6px;
+}
+.module-heading .mod-tag {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.module-heading h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: none;
+  padding: 0;
+}
+.module-rule {
+  height: 2px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  margin-bottom: 24px;
+}
+
+/* ── 小节标题 ── */
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 28px 0 8px;
+}
+
+/* ── 正文段落 ── */
+p { margin: 0 0 12px; color: var(--ink-soft); }
+p:last-child { margin-bottom: 0; }
+
+/* ── 列表 ── */
+ul, ol {
+  padding-left: 1.4em;
+  margin: 8px 0 12px;
+  color: var(--ink-soft);
+}
+li { margin: 4px 0; }
+li strong { color: var(--ink); }
+
+/* ── 分割线 ── */
+hr.section-break {
+  border: none;
+  border-top: 1px solid var(--rule-light);
+  margin: 32px 0;
+}
+
+/* ── 强调块 ── */
+.callout {
+  background: var(--blue-tint);
+  border-left: 3px solid var(--blue-line);
+  padding: 14px 18px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 18px 0;
+  font-size: 15px;
+}
+.callout strong { color: var(--ink); }
+.callout.amber {
+  background: var(--amber-tint);
+  border-left-color: var(--amber-line);
+}
+.callout.green {
+  background: var(--green-tint);
+  border-left-color: var(--green-line);
+}
+.callout.red {
+  background: var(--red-tint);
+  border-left-color: var(--red-line);
+}
+
+/* ── Q&A 知识卡片 ── */
+.qa-card {
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  margin: 18px 0;
+  overflow: hidden;
+  font-size: 15px;
+}
+.qa-card .qa-q {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--rule-light);
+  padding: 10px 16px;
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.qa-card .qa-q::before {
+  content: 'Q';
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.qa-card .qa-a {
+  padding: 10px 16px;
+  color: var(--ink-soft);
+}
+.qa-card .qa-a::before {
+  content: 'A　';
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-right: 8px;
+}
+
+/* ── 图示/代码框 ── */
+.diagram {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 18px 22px;
+  border-radius: var(--r);
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid #2a2a3e;
+  white-space: pre;
+}
+.diagram .comment { color: #6c7086; }
+.diagram .label   { color: var(--accent-dim); font-weight: 500; }
+.diagram .arrow   { color: #89dceb; }
+.diagram .note    { color: #a6e3a1; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: .875em;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── 对比表格 ── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  font-family: var(--f-sans);
+  box-shadow: var(--shadow);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.compare-table thead tr {
+  background: var(--ink);
+  color: #fff;
+}
+.compare-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+.compare-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-light);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+.compare-table td strong { color: var(--ink); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:nth-child(even) td { background: var(--bg-warm); }
+
+/* ── 步骤流程 ── */
+.steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 16px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--rule-light);
+}
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--f-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+}
+.step-body {
+  padding-bottom: 20px;
+  flex: 1;
+}
+.step-body strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.step-body p { font-size: 14px; margin: 0; }
+
+/* ── 速查卡 ── */
+.quick-ref {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+.quick-ref-item {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+.quick-ref-item .term {
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.quick-ref-item .def { color: var(--ink-soft); line-height: 1.6; }
+
+/* ── 决策框 ── */
+.decision-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+.decision-item {
+  border-radius: var(--r);
+  padding: 14px 16px;
+  font-size: 14px;
+  font-family: var(--f-sans);
+}
+.decision-item.yes {
+  background: var(--green-tint);
+  border: 1px solid var(--green-line);
+}
+.decision-item.no {
+  background: var(--red-tint);
+  border: 1px solid var(--red-line);
+}
+.decision-item .label {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.decision-item.yes .label { color: var(--green-line); }
+.decision-item.no  .label { color: var(--red-line); }
+.decision-item p { font-size: 13px; margin: 0; color: var(--ink-soft); }
+
+/* ── 页脚 ── */
+footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule-light);
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  nav.sidebar { position: static; height: auto; }
+  main { padding: 32px 24px 60px; }
+  .decision-grid { grid-template-columns: 1fr; }
+  .quick-ref { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 侧边导航 ══ -->
+<nav class="sidebar">
+  <div class="logo">Claude Code<br>学习笔记III</div>
+  <a class="nav-module" href="#mod1">模块一 · CLAUDE.md</a>
+  <a href="#m1-pain">没有它的痛苦</a>
+  <a href="#m1-essence">本质与机制</a>
+  <a href="#m1-at-syntax">@ 引用语法</a>
+  <a href="#m1-content">写什么内容</a>
+  <a href="#m1-levels">两种作用域</a>
+  <a class="nav-module" href="#mod2">模块二 · Skills</a>
+  <a href="#m2-what">是什么</a>
+  <a href="#m2-two-layer">两层加载模型</a>
+  <a href="#m2-registry">SkillRegistry</a>
+  <a href="#m2-vs-claude">与 CLAUDE.md 的区别</a>
+  <a class="nav-module" href="#mod3">模块三 · MCP</a>
+  <a href="#m3-why">为什么需要</a>
+  <a href="#m3-how">两种连接方式</a>
+  <a href="#m3-scope">三种作用域</a>
+  <a href="#m3-cost">Context 成本</a>
+  <a class="nav-module" href="#mod4">模块四 · Subagent</a>
+  <a href="#m4-essence">本质与工作流</a>
+  <a href="#m4-scenarios">三大应用场景</a>
+  <a href="#m4-codereview">Code Review 深度展开</a>
+  <a href="#m4-memory">Persistent Memory</a>
+  <a href="#m4-preload">Preload Skills</a>
+  <a class="nav-module" href="#mod5">模块五 · Hooks</a>
+  <a href="#m5-problem">解决什么问题</a>
+  <a href="#m5-events">五个触发时机</a>
+  <a href="#m5-exitcode">退出码协议</a>
+  <a href="#m5-decision">决策框架</a>
+  <a class="nav-module" href="#mod6">模块六 · 对照总结</a>
+  <a href="#m6-table">五工具对照表</a>
+</nav>
+
+<!-- ══ 正文 ══ -->
+<main>
+
+<div class="title-block">
+  <h1>Claude Code 学习笔记 III</h1>
+  <div class="meta">
+    <span>五大定制工具，从给 Claude 写说明书到连接外部世界</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     模块一：CLAUDE.md
+══════════════════════════════════════ -->
+<section id="mod1">
+<div class="module-heading">
+  <span class="mod-tag">模块一</span>
+  <h2>CLAUDE.md — 给 Claude 的项目说明书</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>每次打开 Claude Code，它对你的项目一无所知。你用什么框架、遵循什么规范、哪些命令不能乱跑——它都不记得。CLAUDE.md 就是解决这个问题的工具。</p>
+
+<!-- ── 1.1 没有它的痛苦 ── -->
+<div id="m1-pain">
+<h3>1.1　没有 CLAUDE.md 的痛苦</h3>
+
+<p>想象两个真实场景：</p>
+
+<div class="diagram">
+<span class="comment">// 场景一：每次都要重新解释</span>
+你：帮我写一个组件
+Claude：用哪个框架？什么风格？
+你：Next.js 15，Tailwind，上次说过的！
+
+<span class="comment">// 第二天重开会话</span>
+你：再写一个组件
+Claude：用哪个框架？什么风格？
+你：😤
+</div>
+
+<div class="diagram">
+<span class="comment">// 场景二：Claude 做错误假设</span>
+你的项目用 pnpm
+  <span class="arrow">↓</span>
+Claude 假设你用 npm
+  <span class="arrow">↓</span>
+Claude: npm install xxx
+你：不对，我们用 pnpm！
+  <span class="arrow">↓</span>
+反复纠正，浪费时间
+</div>
+
+<p>这两个问题的根源是一样的：Claude 没有项目背景知识，每次会话都从零开始。</p>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.2 本质与机制 ── -->
+<div id="m1-essence">
+<h3>1.2　CLAUDE.md 的本质：提前写好的 prompt</h3>
+
+<p>CLAUDE.md 没有任何魔法。它的唯一特殊之处只有一条：</p>
+
+<div class="callout amber">
+  <strong>启动 Claude Code 时，自动读取 CLAUDE.md，把内容追加到你的 prompt。</strong><br>
+  就这一点，仅此而已。其他方面它和普通 Markdown 文件没有区别。
+</div>
+
+<p>理解了这一点，很多问题就迎刃而解：为什么 CLAUDE.md 里写的规则会生效？因为它们在每次对话开始前就已经进入了 Claude 的上下文，相当于你每次都在开头说了一遍。</p>
+
+<div class="diagram">
+启动 Claude Code
+  <span class="arrow">↓</span>
+自动读取 CLAUDE.md
+  <span class="arrow">↓</span>
+内容追加到 System Prompt
+  <span class="arrow">↓</span>
+Claude 已经知道：框架、工具、规范、命令
+  <span class="arrow">↓</span>
+你直接说任务，不用再解释背景
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.3 @ 引用语法 ── -->
+<div id="m1-at-syntax">
+<h3>1.3　<code>@</code> 引用语法：保持主文件简洁</h3>
+
+<p>随着项目变大，规则越来越多，全塞进一个 CLAUDE.md 会很难维护。<code>@</code> 引用语法解决这个问题：</p>
+
+<div class="diagram">
+<span class="comment"># CLAUDE.md（只有目录，保持简洁）</span>
+@workflow-rules.md
+@output-format.md
+@style-guide.md
+</div>
+
+<p>Claude 启动时读到 <code>@workflow-rules.md</code>，会自动去读那个文件的内容，效果等同于把内容直接写在 CLAUDE.md 里。好处是：</p>
+
+<ul>
+  <li>CLAUDE.md 只做索引，一目了然</li>
+  <li>具体规则分文件管理，各司其职，易于维护</li>
+  <li>Git 追踪更清晰，改了哪个规则文件一眼就看出来</li>
+</ul>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.4 写什么内容 ── -->
+<div id="m1-content">
+<h3>1.4　写什么内容：两种策略</h3>
+
+<p>CLAUDE.md 的内容没有固定模板，取决于你的项目类型：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>项目类型</th><th>特点</th><th>CLAUDE.md 策略</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>探索性项目</strong></td>
+      <td>一开始不知道要做什么，摸索中发现需求</td>
+      <td>从实践倒推——遇到问题、纠正、记录，下次不犯</td>
+    </tr>
+    <tr>
+      <td><strong>固定流程项目</strong>（如 workflow 脚本）</td>
+      <td>目标明确，流程固定，规范清晰</td>
+      <td>提前写规则——完全合理，一次写好长期生效</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>探索性项目的典型演化过程：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>第 1 天：项目刚开始</strong>
+      <p>CLAUDE.md 只有一行：<code># 这是一个 Next.js 项目</code></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>第 3 天：发现 Claude 总用 npm</strong>
+      <p>补充：<code>安装依赖用 pnpm install，不要用 npm</code></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>第 7 天：发现 Claude 总写 API routes</strong>
+      <p>补充：<code>优先使用 server actions，不要写 API routes</code></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>持续迭代</strong>
+      <p>每次遇到问题就记录，CLAUDE.md 越来越精准，Claude 越来越懂你的项目。</p>
+    </div>
+  </div>
+</div>
+
+<div class="callout green">
+  <strong>核心原则：</strong>不是一开始就想象所有规则，而是遇到问题 → 纠正 → 记录 → 下次不犯。CLAUDE.md 是从实践中长出来的，不是凭空设计出来的。
+</div>
+
+<p>典型内容结构包括：技术栈说明、常用命令、代码规范、需要遵循的规则、用 <code>@</code> 引用的规范文档。</p>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.5 两种作用域 ── -->
+<div id="m1-levels">
+<h3>1.5　Project-level vs User-level：团队共享 vs 个人偏好</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>类型</th><th>位置</th><th>作用范围</th><th>适合放什么</th><th>提交 Git</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Project-level</strong></td>
+      <td>项目根目录</td>
+      <td>整个团队共享</td>
+      <td>技术栈、团队规范、项目命令</td>
+      <td>✅ 是</td>
+    </tr>
+    <tr>
+      <td><strong>User-level</strong></td>
+      <td>用户配置文件夹</td>
+      <td>只对你生效，跨所有项目</td>
+      <td>个人偏好、工作习惯、常用工具</td>
+      <td>❌ 不要</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>对于个人项目，两个 level 合二为一。但理解这个概念，将来团队协作时会用到——团队规范放 Project-level 让所有人共享，个人习惯放 User-level 不影响他人。</p>
+
+<div class="callout">
+  <strong>CLAUDE.md 和 Memory 的分工：</strong>CLAUDE.md 是<strong>静态规则</strong>——技术栈、规范、命令，手动维护，随项目提交 Git；Memory 是<strong>动态经验</strong>——Claude 从对话中自动积累的记忆，跨 session 保留。前者是你写给 Claude 的说明书，后者是 Claude 自己记的笔记。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">可以完全不用 CLAUDE.md 吗？</div>
+  <div class="qa-a">完全可以。CLAUDE.md 的唯一特殊之处是"启动时自动读取"，如果你不介意每次手动说"先读 workflow-rules.md"，效果是一样的。CLAUDE.md 只是省掉这一步——让规则自动生效，不需要你每次提醒。对于偶尔用一次的任务，不创建 CLAUDE.md 也完全合理。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块二：Skills
+══════════════════════════════════════ -->
+<section id="mod2">
+<div class="module-heading">
+  <span class="mod-tag">模块二</span>
+  <h2>Skills — 按需加载的知识插件</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>CLAUDE.md 解决了"让 Claude 记住项目规则"的问题，但有一个隐患：如果你把所有知识都塞进 CLAUDE.md，它会越来越臃肿，每次对话都要把这些内容全部加载进上下文，成本极高。Skills 是解决这个问题的方案。</p>
+
+<!-- ── 2.1 是什么 ── -->
+<div id="m2-what">
+<h3>2.1　Skills 是什么</h3>
+
+<p>Skills 是一套<strong>插件式知识系统</strong>。每个 Skill 是一个 Markdown 文件，描述 Claude 执行某类任务的具体方法。关键在于：这些知识<strong>不是永远占据 System Prompt</strong>，而是在 Claude 判断需要时才加载进来。</p>
+
+<div class="callout amber">
+  <strong>核心思想：</strong>知识在需要的那一刻才进入上下文，而不是永远待在那里占位置。
+</div>
+
+<p>文件结构很简单：</p>
+
+<div class="diagram">
+skills/
+├── web-search/
+│   └── SKILL.md      <span class="comment"># 网页搜索的执行方法</span>
+├── write-doc/
+│   └── SKILL.md      <span class="comment"># 文档写作的执行方法</span>
+└── code-review/
+    └── SKILL.md      <span class="comment"># 代码审查的执行方法</span>
+</div>
+
+<p>每个 SKILL.md 文件分两部分：</p>
+
+<div class="diagram">
+<span class="label">---</span>
+<span class="label">name: web-search</span>
+<span class="label">description: 网页搜索能力，用于查找最新文档和资料</span>
+<span class="label">---</span>
+
+<span class="comment"># 以上是 YAML Frontmatter（元数据）——给索引用</span>
+<span class="comment"># 以下是 body（完整内容）——给执行时用</span>
+
+## Web Search 使用方法
+1. 构建查询关键词
+2. 调用搜索 API
+3. 筛选相关结果
+...
+</div>
+
+<p>这种"元数据 + 内容"的分离设计，是 Skills 高效运作的关键——下一节会解释为什么。</p>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.2 两层加载模型 ── -->
+<div id="m2-two-layer">
+<h3>2.2　两层加载模型：便宜的发现 + 昂贵的执行</h3>
+
+<p>Skills 的核心机制是<strong>两层加载</strong>，每层的成本和目的完全不同：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Layer 1：启动时加载目录（便宜）</strong>
+      <p>Claude Code 启动时，扫描所有 SKILL.md 的 Frontmatter，把每个 Skill 的名称和描述加载进 System Prompt。每个 Skill 只占约 <strong>100 tokens</strong>。Claude 由此知道"有哪些工具可用"，但还不知道怎么用。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Layer 2：按需加载完整内容（昂贵）</strong>
+      <p>当 Claude 判断某个任务需要某个 Skill，才去加载该 Skill 的完整 body，作为工具调用结果注入对话。每个 Skill 完整内容约 <strong>2000 tokens</strong>。用完即弃，不会一直占着。</p>
+    </div>
+  </div>
+</div>
+
+<div class="diagram">
+<span class="label">Layer 1（System Prompt，启动时）：</span>
+Skills available:
+- web-search: 网页搜索能力，用于查找最新文档    <span class="note">~100 tokens</span>
+- write-doc:  文档写作能力，生成结构化文档        <span class="note">~100 tokens</span>
+- code-review: 代码审查能力，检查质量和安全       <span class="note">~100 tokens</span>
+
+<span class="arrow">↓ Claude 判断需要 web-search</span>
+
+<span class="label">Layer 2（tool_result，按需注入）：</span>
+&lt;skill name="web-search"&gt;
+## Web Search 使用方法
+1. 构建查询关键词
+2. 调用搜索 API
+...（完整内容）                                   <span class="note">~2000 tokens</span>
+&lt;/skill&gt;
+</div>
+
+<p>这个设计带来的成本节省非常显著：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>方式</th><th>10 个 Skills 的成本</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>传统方式</strong>（全部写进 CLAUDE.md）</td>
+      <td>10 × 2000 = <strong>20,000 tokens</strong></td>
+      <td>所有知识永远在 System Prompt，不管用不用</td>
+    </tr>
+    <tr>
+      <td><strong>Skills 方式</strong></td>
+      <td>10 × 100 + 1 × 2000 = <strong>3,000 tokens</strong></td>
+      <td>只加载目录 + 当次用到的那一个</td>
+    </tr>
+    <tr>
+      <td><strong>节省</strong></td>
+      <td style="color:#2e8b57;font-weight:700;">↓ 85%</td>
+      <td>每次 API 调用省 17,000 tokens</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.3 SkillRegistry ── -->
+<div id="m2-registry">
+<h3>2.3　SkillRegistry：图书馆的索引卡片系统</h3>
+
+<p>负责管理所有 Skills 的组件叫 <strong>SkillRegistry</strong>，可以把它理解成图书馆的索引卡片系统：</p>
+
+<ul>
+  <li>图书馆有成千上万本书（Skills），但你不需要把每本书都搬到桌上</li>
+  <li>索引卡片告诉你"有哪些书、各讲什么"（Layer 1 目录）</li>
+  <li>需要某本书时，才去书架取来（Layer 2 完整内容）</li>
+</ul>
+
+<p>SkillRegistry 的工作流程：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>启动时扫描</strong>
+      <p>扫描 <code>skills/</code> 目录下所有 <code>SKILL.md</code> 文件</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>解析并存储</strong>
+      <p>提取每个文件的 Frontmatter（元数据）和 body（完整内容），保存在内存字典中</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>提供两个接口</strong>
+      <p><code>describe_available()</code> → 返回所有 Skills 的目录（Layer 1 用）<br>
+      <code>load_full_text(name)</code> → 返回指定 Skill 的完整内容（Layer 2 用）</p>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>YAML Frontmatter 的设计意图——关注点分离：</strong><br>
+  元数据（name、description）给 SkillRegistry 索引用，决定"Claude 知不知道这个 Skill 存在"；<br>
+  body 内容给执行时用，决定"Claude 知道怎么用这个 Skill"。<br>
+  两者分开，各自只在需要时出现，互不干扰。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.4 与 CLAUDE.md 的区别 ── -->
+<div id="m2-vs-claude">
+<h3>2.4　Skills 和 CLAUDE.md 的区别</h3>
+
+<p>两者都是"给 Claude 的知识"，但定位完全不同：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>维度</th><th>CLAUDE.md</th><th>Skills</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>加载时机</strong></td>
+      <td>启动时，永远在上下文</td>
+      <td>按需加载，用完即弃</td>
+    </tr>
+    <tr>
+      <td><strong>适合放什么</strong></td>
+      <td>任务流程——做什么、遵循什么规范</td>
+      <td>执行细节——具体怎么做某件事</td>
+    </tr>
+    <tr>
+      <td><strong>成本</strong></td>
+      <td>永远占用 context</td>
+      <td>只在用时付费</td>
+    </tr>
+    <tr>
+      <td><strong>典型内容</strong></td>
+      <td>技术栈、命令、代码规范</td>
+      <td>可复用的执行方法、工作流程</td>
+    </tr>
+    <tr>
+      <td><strong>类比</strong></td>
+      <td>员工手册（入职就发，随时翻阅）</td>
+      <td>技能培训手册（需要时才拿出来）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="qa-card">
+  <div class="qa-q">Skills 和直接在 CLAUDE.md 里写指令有什么区别？</div>
+  <div class="qa-a">本质区别是<strong>永远在 context vs 按需加载</strong>。写在 CLAUDE.md 里的内容，每次对话都会占用 context 空间，不管这次用不用得到。Skills 只在 Claude 判断需要时才加载完整内容，其余时间只有一行描述（~100 tokens）。如果你有 10 个复杂的执行方法，全写进 CLAUDE.md 会消耗 20,000 tokens；用 Skills 只需 3,000 tokens。对于偶尔用到的知识，Skills 是更经济的选择。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块三：MCP
+══════════════════════════════════════ -->
+<section id="mod3">
+<div class="module-heading">
+  <span class="mod-tag">模块三</span>
+  <h2>MCP — 连接外部世界的桥梁</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>CLAUDE.md 和 Skills 解决的都是"Claude 的内部知识"问题。但真实工作中，数据不只在本地代码里——任务在 Linear，文档在 Notion，数据在数据库。Claude Code 本身无法触达这些地方，MCP 就是打通这道墙的协议。</p>
+
+<!-- ── 3.1 为什么需要 ── -->
+<div id="m3-why">
+<h3>3.1　为什么需要 MCP</h3>
+
+<p>Claude Code 默认只能访问你本地的代码文件。但实际工作中的数据散落在各处：</p>
+
+<div class="quick-ref">
+  <div class="quick-ref-item">
+    <div class="term">任务管理</div>
+    <div class="def">Linear、Jira 里的 ticket 详情——"MEN-12 这个任务要做什么？"</div>
+  </div>
+  <div class="quick-ref-item">
+    <div class="term">技术文档</div>
+    <div class="def">最新的库文档、API 文档——"shadcn/ui 最新版怎么用？"</div>
+  </div>
+  <div class="quick-ref-item">
+    <div class="term">数据库</div>
+    <div class="def">用户数据、业务数据——"users 表有哪些字段？"</div>
+  </div>
+  <div class="quick-ref-item">
+    <div class="term">协作工具</div>
+    <div class="def">Notion、Google Drive 里的文档——"这个需求的背景是什么？"</div>
+  </div>
+</div>
+
+<div class="callout amber">
+  <strong>判断是否需要 MCP 的核心问题：</strong>你需要的数据在本地吗？<br>
+  在本地 → 不需要 MCP，Claude Code 直接读文件即可。<br>
+  不在本地（在外部服务、数据库、云端）→ 需要 MCP 来连接。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 3.2 MCP 是什么 ── -->
+<div id="m3-how">
+<h3>3.2　MCP 是什么，两种连接方式</h3>
+
+<p>MCP 全称 <strong>Model Context Protocol</strong>，是一套连接外部工具的<strong>协议标准</strong>。你可以把它理解成：电话本（知道有哪些外部服务）+ 电话线（实际建立连接的通道）。</p>
+
+<p>有两种连接方式：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>类型</th><th>运行位置</th><th>连接方式</th><th>典型例子</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>HTTP 服务器</strong></td>
+      <td>由服务商托管，运行在云端</td>
+      <td>通过网络连接</td>
+      <td>Linear、Context7、Notion 等第三方服务</td>
+    </tr>
+    <tr>
+      <td><strong>Stdio 服务器</strong></td>
+      <td>在你本地运行的进程</td>
+      <td>通过标准输入输出通信</td>
+      <td>本地 Python 脚本、数据库连接工具</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="diagram">
+Claude Code
+  <span class="arrow">↓ 需要外部数据时</span>
+MCP 协议（桥梁）
+  <span class="arrow">↓ 根据类型选择连接方式</span>
+┌─────────────────┬──────────────────┬─────────────────┐
+│   Linear (HTTP) │  Context7 (HTTP) │  本地DB (Stdio) │
+│   读取 ticket   │  查最新文档      │  查询数据表     │
+└─────────────────┴──────────────────┴─────────────────┘
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 3.3 三种作用域 ── -->
+<div id="m3-scope">
+<h3>3.3　三种作用域</h3>
+
+<p>MCP 服务器的配置有三个作用域，决定谁能用、在哪里用：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Local（本地）</strong>
+      <p>只在当前项目可用，只有你自己能用。适合临时测试或个人专属的连接。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>User（用户）</strong>
+      <p>你的所有项目都能用，但只对你生效。适合个人常用的外部服务，比如你自己的数据库连接。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Project（项目）</strong>
+      <p>通过项目根目录的 <code>.mcp.json</code> 文件配置，可以提交 Git，整个团队共享。适合团队都需要的外部服务，比如共用的 Linear 或 Notion 连接。</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 3.4 Context 成本 ── -->
+<div id="m3-cost">
+<h3>3.4　MCP 的 Context 成本</h3>
+
+<p>MCP 有一个容易被忽视的成本：<strong>工具定义全量加载</strong>。每个 MCP 服务器连接后，它提供的所有工具定义都会加载进 context window，即使你这次根本不打算用它。</p>
+
+<div class="callout red">
+  <strong>注意：</strong>MCP 工具定义不像 Skills 那样按需加载——它们是启动时全量加载的。连接的 MCP 服务器越多，占用的 context 越多，即使你没有使用它们。
+</div>
+
+<p>管理建议：</p>
+
+<ul>
+  <li>用 <code>/mcp</code> 命令查看当前已连接的服务器和工具列表</li>
+  <li>禁用不常用的 MCP 服务器，减少不必要的 context 占用</li>
+  <li>如果工具定义超过 context 的 10%，Claude Code 会自动切换到 <strong>tool search 模式</strong>——不再全量展示工具，改为按需搜索</li>
+</ul>
+
+<div class="qa-card">
+  <div class="qa-q">MCP 和 Skills 都是"给 Claude 装工具"，区别是什么？</div>
+  <div class="qa-a">两者解决的问题完全不同。<strong>MCP 是外部服务连接</strong>——让 Claude 能访问本地代码之外的数据和服务，比如读取 Linear 的 ticket、查询数据库；<strong>Skills 是内部知识注入</strong>——告诉 Claude 执行某类任务的具体方法，比如"怎么做代码审查"、"怎么写文档"。MCP 扩展的是 Claude 能触达的数据范围，Skills 扩展的是 Claude 知道怎么做的事情范围。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块四：Subagent
+══════════════════════════════════════ -->
+<section id="mod4">
+<div class="module-heading">
+  <span class="mod-tag">模块四</span>
+  <h2>Subagent — Claude 的分身</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>前三个工具都是在扩展"单个 Claude 实例"的能力边界。Subagent 走了另一条路：直接再开一个完整的 Claude 实例，让它独立去做一件事，做完把结论汇报回来。</p>
+
+<!-- ── 4.1 本质与工作流 ── -->
+<div id="m4-essence">
+<h3>4.1　Subagent 的本质：完整独立的 Claude 实例</h3>
+
+<p>Subagent 不是"主 Agent 的一部分"，而是一个<strong>完整的独立 Claude 实例</strong>，有自己的 context window、自己的 messages 数组、自己的 agent loop。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>维度</th><th>主 Agent</th><th>Subagent</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>messages 数组</strong></td>
+      <td>历史对话 + 工具调用 + 文件内容，几万 tokens</td>
+      <td>只有一条：主 Agent 传来的 prompt，几百 tokens</td>
+    </tr>
+    <tr>
+      <td><strong>context window</strong></td>
+      <td>随对话积累，越来越重</td>
+      <td>全新的，200k tokens 全部可用</td>
+    </tr>
+    <tr>
+      <td><strong>能力</strong></td>
+      <td>读写文件、运行工具、调用 Subagent</td>
+      <td>读写文件、运行工具（但不能再创建 Subagent）</td>
+    </tr>
+    <tr>
+      <td><strong>生命周期</strong></td>
+      <td>整个会话期间持续存在</td>
+      <td>完成任务后 context 被丢弃，只返回 summary</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>工作流程：</p>
+
+<div class="diagram">
+主 Agent                          Subagent
+┌──────────────────────┐         ┌──────────────────────┐
+│ messages = [         │         │ messages = [         │
+│   历史对话,           │         │   task prompt        │
+│   工具调用结果,       │  <span class="arrow">──→</span>  │ ]                    │
+│   读取的文件,         │         │                      │
+│   几万 tokens        │         │ 几百 tokens（干净）   │
+│ ]                    │         └──────────────────────┘
+└──────────────────────┘                  │
+         ↑                                │ 独立执行：
+         │                                │ 读文件、运行工具
+         │                                │ 探索代码库
+         │                                ↓
+         │                          生成 summary
+         │                                │
+         │       只返回 summary            │
+         └────────────────────────────────┘
+
+主 Agent 的 context 保持干净，只增加了一条 summary
+</div>
+
+<div class="callout green">
+  <strong>核心价值——Context Boundary（上下文边界）：</strong>探索性任务产生的大量中间过程（读了几十个文件、跑了几十条命令）不会污染主 Agent 的 context。主 Agent 只接收最终 summary，信噪比保持高位。
+</div>
+
+<div class="callout red">
+  <strong>两个限制：</strong>Subagent 不能创建自己的 Subagent（防止无限递归）；完成后 context 被丢弃，不保留历史。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.2 三大应用场景 ── -->
+<div id="m4-scenarios">
+<h3>4.2　三大应用场景</h3>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">A</div>
+    <div class="step-body">
+      <strong>独立视角——需要 fresh eyes 的任务</strong>
+      <p>主 Agent 写完代码后，调用 Subagent 审查。Subagent 没有"我想做什么"的先入之见，只看"代码实际做了什么"，能发现主 Agent 因认知依赖而忽略的问题。Code Review 是这个场景的典型代表（下一节详讲）。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">B</div>
+    <div class="step-body">
+      <strong>并行任务——多模块同时开发</strong>
+      <p>主 Agent 作为 Project Leader，把独立的子任务分发给多个 Subagent 并行执行，最后整合结果。各 Subagent 的 context 互不干扰，不会因为一个模块的探索过程污染另一个模块的工作。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">C</div>
+    <div class="step-body">
+      <strong>临时研究——保持主线干净</strong>
+      <p>主 Agent 在开发过程中遇到"这个库怎么用"的问题，派 Subagent 去调研，返回 summary 后主 Agent 继续开发。调研过程中读的文档、跑的测试代码，全部留在 Subagent 的 context 里被丢弃，主线 context 完全不受影响。</p>
+    </div>
+  </div>
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">Subagent 和直接开一个新对话有什么区别？</div>
+  <div class="qa-a">最关键的区别是<strong>项目 context 的自动传递</strong>。手动开新对话，你需要重新解释项目背景、粘贴相关代码、说明任务要求——这些工作全靠你手动完成。Subagent 由主 Agent 调用，主 Agent 会把必要的任务描述和项目信息打包进 prompt 传给它，Subagent 启动时就已经知道背景，不需要你手动解释。对于需要反复做的任务（比如每次写完代码都做 Code Review），Subagent 的效率优势非常明显。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.3 Code Review 深度展开 ── -->
+<div id="m4-codereview">
+<h3>4.3　重点展开：Code Review 场景</h3>
+
+<p>Code Review 是 Subagent 最经典的应用场景，值得深入理解。</p>
+
+<h3>为什么主 Agent 审查自己的代码不可靠？</h3>
+
+<p>主 Agent 在写代码时，已经形成了一套"我想做什么"的思维路径：</p>
+
+<div class="diagram">
+主 Agent 的思考过程：
+"我要实现功能 X"
+  <span class="arrow">↓</span>
+"先写 A 函数，然后 B 函数"
+  <span class="arrow">↓</span>
+"这样写应该可以"
+  <span class="arrow">↓</span>
+写完代码，自我审查
+
+<span class="comment">// 问题：它"知道"自己想做什么</span>
+<span class="comment">// 所以它会用"意图"去解读代码，而不是用"实际行为"</span>
+<span class="comment">// 边界情况、错误处理的漏洞，很容易被忽略</span>
+</div>
+
+<p>Subagent 没有这个包袱：</p>
+
+<div class="diagram">
+Subagent 的视角：
+"我看到这段代码"
+  <span class="arrow">↓</span>
+"目标是什么？实现了什么？"
+  <span class="arrow">↓</span>
+"有没有边界情况？错误处理？"
+  <span class="arrow">↓</span>
+客观评价，只看代码实际做了什么
+</div>
+
+<div class="callout amber">
+  <strong>权责分离原则：</strong>Agent 的世界里也需要"做事的人 ≠ 审查的人"。就像公司里开发 ≠ QA，运动员 ≠ 裁判——既当运动员又当裁判，客观性无从保证。<br><br>
+  在 Claude Code 里体现为：<br>
+  <strong>Code writer（主 Agent）</strong>——有 edit 权限，负责写代码<br>
+  <strong>Code reviewer（Subagent）</strong>——只有 read-only 工具，负责审查，不能直接修改
+</div>
+
+<h3>团队共用同一套 Reviewer 标准</h3>
+
+<p>一个常见的误解：团队用 Subagent 做 Code Review，是不是有"一个专门的 Reviewer Agent"在帮所有人审查？</p>
+
+<p>不是。正确理解是：<strong>不是一个审查员，而是一套审查标准。</strong></p>
+
+<div class="diagram">
+项目里有一个文件：code-reviewer.md
+  <span class="arrow">↓</span>
+这个文件定义审查规则（审查什么、用什么标准、怎么报告）
+  <span class="arrow">↓</span>
+张三的 Claude 用这个文件创建 Subagent → 按规则审查张三的代码
+李四的 Claude 用这个文件创建 Subagent → 按规则审查李四的代码
+  <span class="arrow">↓</span>
+结果：大家的 reviewer 标准完全一致
+</div>
+
+<div class="callout green">
+  <strong>类比：</strong>不是"公司有一个审查员"，而是"公司有一套审查规章制度，每个人用这套制度自查"。配置文件即标准，标准即一致性。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.4 Persistent Memory ── -->
+<div id="m4-memory">
+<h3>4.4　Persistent Memory：让 Subagent 跨 session 记住事情</h3>
+
+<p>Subagent 完成任务后 context 会被丢弃——但有时候你希望它"记住"上一次做了什么，比如 Code Reviewer 记得上次发现了哪些问题、上次已经审查到哪里。<strong>Persistent Memory</strong> 就是为此设计的。</p>
+
+<p>它的工作方式：Subagent 完成任务后，把关键信息写入一个持久化的记忆文件；下次同一个 Subagent 被调用时，先读取这份记忆，带着"上次的经验"开始工作。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>维度</th><th>CLAUDE.md</th><th>Persistent Memory</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>性质</strong></td>
+      <td>静态规则，手动维护</td>
+      <td>动态记忆，自动从对话生成</td>
+    </tr>
+    <tr>
+      <td><strong>更新方式</strong></td>
+      <td>你手动编辑文件</td>
+      <td>Subagent 每次运行后自动更新</td>
+    </tr>
+    <tr>
+      <td><strong>典型内容</strong></td>
+      <td>"用 Next.js 15，pnpm"</td>
+      <td>"上次审查发现这个模块有性能问题"</td>
+    </tr>
+    <tr>
+      <td><strong>跨 session</strong></td>
+      <td>✅（文件持久存在）</td>
+      <td>✅（记忆文件持久存在）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  Persistent Memory 的完整机制（记忆文件结构、更新策略、与 Memory 系统的关系）在<strong>学习笔记 II · 模块四</strong>有详细展开。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.5 Preload Skills ── -->
+<div id="m4-preload">
+<h3>4.5　Preload Skills：为什么 Subagent 要预加载</h3>
+
+<p>主 Agent 的 Skills 是按需加载的——启动时只加载目录，用到时才加载完整内容。但 Subagent 通常会<strong>预加载</strong>它需要的 Skills 完整内容，而不是等到用时再加载。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th></th><th>主 Agent</th><th>Subagent</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Skills 加载方式</strong></td>
+      <td>启动时加载目录，按需加载完整内容</td>
+      <td>启动时直接预加载指定 Skills 的完整内容</td>
+    </tr>
+    <tr>
+      <td><strong>原因</strong></td>
+      <td>生命周期长，有时间按需加载</td>
+      <td>生命周期短，任务开始就要立刻知道怎么做</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Subagent 的生命周期很短——它被创建出来就是为了完成一个具体任务，完成后就消亡。如果还要在执行过程中再去按需加载 Skills，会浪费宝贵的时间。预加载让它一启动就具备完整能力，立刻投入工作。</p>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块五：Hooks
+══════════════════════════════════════ -->
+<section id="mod5">
+<div class="module-heading">
+  <span class="mod-tag">模块五</span>
+  <h2>Hooks — 100% 确定性的自动化执行</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>前四个工具都依赖 Claude 的"理解"——它读了规则，然后决定怎么做。但有一类需求不需要理解，只需要<strong>必定发生</strong>：每次编辑文件后格式化、每次完成任务后发通知、每次运行危险命令前拦截。Hooks 就是为这类需求设计的。</p>
+
+<!-- ── 5.1 解决什么问题 ── -->
+<div id="m5-problem">
+<h3>5.1　Hooks 解决什么问题</h3>
+
+<p>在 CLAUDE.md 里写"每次编辑文件后运行 Prettier 格式化"，Claude 大部分时候会照做——但不是每次。它可能在专注于某个复杂任务时忘掉这条规则，或者判断"这次改动很小，不需要格式化"。</p>
+
+<div class="decision-grid">
+  <div class="decision-item no">
+    <div class="label">CLAUDE.md 提示方式</div>
+    <p>Claude 读到规则 → 大部分时候会做 → 但有时会忘 → 不确定性存在</p>
+  </div>
+  <div class="decision-item yes">
+    <div class="label">Hooks 方式</div>
+    <p>事件触发 → shell 命令必定执行 → 100% 确定性 → 无例外</p>
+  </div>
+</div>
+
+<div class="callout amber">
+  <strong>Hooks 的本质：</strong>生命周期钩子。某个事件发生时，<strong>必定</strong>执行某个 shell 命令——不经过 Claude 的判断，不受 Claude 的注意力影响，机械地、确定地执行。
+</div>
+
+<p>Hooks 配置在 <code>settings.json</code> 里，<strong>不是</strong> CLAUDE.md。这个区别很重要：CLAUDE.md 是给 Claude 看的规则，Hooks 是给系统执行的命令，两者的执行者不同。</p>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 5.2 五个触发时机 ── -->
+<div id="m5-events">
+<h3>5.2　五个触发时机</h3>
+
+<p>Hooks 挂载在 Claude Code 的生命周期事件上，共有五个触发点：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>事件</th><th>触发时机</th><th>能否阻止工具执行</th><th>典型用途</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>PreToolUse</strong></td>
+      <td>工具执行<strong>前</strong></td>
+      <td>✅ 可以（exit code 1）</td>
+      <td>安全检查、权限验证、阻止危险命令</td>
+    </tr>
+    <tr>
+      <td><strong>PostToolUse</strong></td>
+      <td>工具执行<strong>后</strong></td>
+      <td>❌ 不能（已执行）</td>
+      <td>自动格式化、日志记录、触发后续操作</td>
+    </tr>
+    <tr>
+      <td><strong>UserPromptSubmit</strong></td>
+      <td>用户提交 prompt 时</td>
+      <td>✅ 可以</td>
+      <td>输入预处理、注入额外上下文</td>
+    </tr>
+    <tr>
+      <td><strong>Stop</strong></td>
+      <td>Claude 完成任务时</td>
+      <td>—</td>
+      <td>发送完成通知、触发下游流程</td>
+    </tr>
+    <tr>
+      <td><strong>Notify</strong></td>
+      <td>Claude 发出通知时</td>
+      <td>—</td>
+      <td>自定义通知渠道（Slack、邮件等）</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>最常用的两个是 <strong>PreToolUse</strong> 和 <strong>PostToolUse</strong>，分别对应"拦截"和"追加"两种模式：</p>
+
+<div class="diagram">
+用户发出任务
+  <span class="arrow">↓</span>
+<span class="label">UserPromptSubmit Hook</span>（可在此注入额外信息）
+  <span class="arrow">↓</span>
+Claude 决定调用工具
+  <span class="arrow">↓</span>
+<span class="label">PreToolUse Hook</span>（可在此检查并阻止）
+  <span class="arrow">↓</span>
+工具执行
+  <span class="arrow">↓</span>
+<span class="label">PostToolUse Hook</span>（可在此追加操作，如格式化）
+  <span class="arrow">↓</span>
+Claude 完成任务
+  <span class="arrow">↓</span>
+<span class="label">Stop Hook</span>（可在此发通知）
+</div>
+
+<p>常见用例组合：</p>
+
+<ul>
+  <li><strong>PostToolUse + Edit/Write 匹配</strong> → 每次编辑文件后自动运行 <code>prettier --write</code></li>
+  <li><strong>PreToolUse + Bash 匹配</strong> → 检测危险命令（如 <code>rm -rf</code>），exit code 1 阻止执行</li>
+  <li><strong>Stop</strong> → 任务完成后发送桌面通知或 Slack 消息</li>
+  <li><strong>PostToolUse + 任意工具</strong> → 记录所有操作日志</li>
+</ul>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 5.3 退出码协议 ── -->
+<div id="m5-exitcode">
+<h3>5.3　退出码协议：Hook 怎么和 Claude Code 通信</h3>
+
+<p>Hook 是一个 shell 命令，它通过<strong>退出码（exit code）</strong>告诉 Claude Code 接下来怎么做：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>Exit Code</th><th>含义</th><th>PreToolUse 效果</th><th>PostToolUse 效果</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>0</code></td>
+      <td>成功，继续</td>
+      <td>工具正常执行</td>
+      <td>正常继续</td>
+    </tr>
+    <tr>
+      <td><code>1</code></td>
+      <td>阻止</td>
+      <td>工具<strong>不执行</strong>，stderr 内容作为错误返回给 Claude</td>
+      <td>记录警告日志</td>
+    </tr>
+    <tr>
+      <td><code>2</code></td>
+      <td>注入消息</td>
+      <td>stderr 内容注入对话，工具<strong>仍然执行</strong></td>
+      <td>stderr 内容追加到工具结果</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>类比理解：</strong>Claude Code 是厨师，Hook 是厨房里的小助手。<br>
+  退出码 0 = 小助手点头（继续）<br>
+  退出码 1 = 小助手举手（停！这个不能做）<br>
+  退出码 2 = 小助手递纸条（有话说，但你继续做）
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 5.4 决策框架 ── -->
+<div id="m5-decision">
+<h3>5.4　决策框架：Hook vs CLAUDE.md，用哪个？</h3>
+
+<p>判断一个需求该用 Hook 还是 CLAUDE.md，核心问题只有两个：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>需要 Claude 的智能判断吗？</strong>
+      <p>需要理解内容、看情况而定、创造性工作 → <strong>CLAUDE.md</strong><br>
+      纯机械动作、不需要理解内容 → 继续看第二个问题</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>每次都必须做，没有例外吗？</strong>
+      <p>必须 100% 执行，不允许遗漏 → <strong>Hook</strong><br>
+      有时候做、有时候不做 → <strong>CLAUDE.md</strong></p>
+    </div>
+  </div>
+</div>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>判断维度</th><th>用 Hook</th><th>用 CLAUDE.md</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>能否一句话说清</strong></td>
+      <td>"每次 X 就 Y"，机械重复</td>
+      <td>"看情况……"，需要判断</td>
+    </tr>
+    <tr>
+      <td><strong>是否需要理解内容</strong></td>
+      <td>不需要，只看动作类型和文件路径</td>
+      <td>需要，要理解文件内容或上下文</td>
+    </tr>
+    <tr>
+      <td><strong>执行频率</strong></td>
+      <td>每次触发都必须执行</td>
+      <td>有时执行，有时不执行</td>
+    </tr>
+    <tr>
+      <td><strong>典型例子</strong></td>
+      <td>格式化、日志、通知、安全检查</td>
+      <td>生成笔记、写文案、代码风格建议</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="qa-card">
+  <div class="qa-q">Hook 能理解文件内容吗？比如"只格式化重要文件"？</div>
+  <div class="qa-a">不能。Hook 是"机器人"，它只能看到<strong>动作类型</strong>（Edit、Write、Bash…）和<strong>文件路径</strong>（通过环境变量传入），不能理解文件内容。"只格式化重要文件"这种需要判断的逻辑，要么写进 CLAUDE.md 让 Claude 决定，要么在 Hook 的 shell 脚本里用文件路径匹配规则来实现（比如只处理 <code>src/</code> 目录下的文件）。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块六：五工具对照总结
+══════════════════════════════════════ -->
+<section id="mod6">
+<div class="module-heading">
+  <span class="mod-tag">模块六</span>
+  <h2>五工具对照表 — 本篇小结</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>五个工具各有定位，按"能力扩展层次"递进——从给 Claude 写说明书，到装知识插件，到连接外部世界，到任务分身，到自动化执行。理解它们的边界，才能在正确的场景用正确的工具。</p>
+
+<!-- ── 6.1 五工具对照表 ── -->
+<div id="m6-table">
+<h3>6.1　五工具一览</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr>
+      <th>工具</th>
+      <th>本质</th>
+      <th>加载时机</th>
+      <th>适合放什么</th>
+      <th>类比</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>CLAUDE.md</strong></td>
+      <td>启动时自动读取的 prompt</td>
+      <td>启动时，永远在 context</td>
+      <td>技术栈、规范、命令、项目背景</td>
+      <td>员工手册</td>
+    </tr>
+    <tr>
+      <td><strong>Skills</strong></td>
+      <td>按需加载的知识插件</td>
+      <td>用时才加载，用完即弃</td>
+      <td>可复用的执行方法、工作流程</td>
+      <td>技能培训手册</td>
+    </tr>
+    <tr>
+      <td><strong>MCP</strong></td>
+      <td>外部工具连接协议</td>
+      <td>启动时（工具定义全量加载）</td>
+      <td>外部服务、数据库、云端数据</td>
+      <td>电话本 + 电话线</td>
+    </tr>
+    <tr>
+      <td><strong>Subagent</strong></td>
+      <td>独立的 Claude 实例</td>
+      <td>临时创建，完成后丢弃</td>
+      <td>隔离任务、独立视角、并行工作</td>
+      <td>临时外包团队</td>
+    </tr>
+    <tr>
+      <td><strong>Hooks</strong></td>
+      <td>生命周期事件钩子</td>
+      <td>事件触发时，100% 执行</td>
+      <td>机械重复的必做动作</td>
+      <td>流水线机器人</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>6.2　能力扩展层次图</h3>
+
+<div class="diagram">
+<span class="comment">// 五个工具按层次递进，各解决不同维度的问题</span>
+
+<span class="label">层次一：告诉 Claude 项目背景</span>
+  CLAUDE.md ── 启动时自动注入，静态规则，永远生效
+
+<span class="label">层次二：告诉 Claude 怎么做某件事</span>
+  Skills ──── 按需注入，动态知识，用时付费
+
+<span class="label">层次三：让 Claude 触达外部世界</span>
+  MCP ──────── 连接外部服务和数据，扩展数据边界
+
+<span class="label">层次四：让 Claude 分身并行工作</span>
+  Subagent ── 独立实例，隔离 context，保持主线干净
+
+<span class="label">层次五：让某些动作必定发生</span>
+  Hooks ────── 绕过 Claude 的判断，机械确定地执行
+</div>
+
+<h3>6.3　选择工具的决策路径</h3>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>这件事需要 Claude 每次启动都知道吗？</strong>
+      <p>是 → <strong>CLAUDE.md</strong>（技术栈、规范、命令）</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>这是一套可复用的执行方法，但不需要永远占 context？</strong>
+      <p>是 → <strong>Skills</strong>（按需加载，节省 85% context）</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>需要的数据不在本地，在外部服务或数据库？</strong>
+      <p>是 → <strong>MCP</strong>（连接 Linear、数据库、Notion 等）</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>需要独立视角、并行执行、或隔离探索过程？</strong>
+      <p>是 → <strong>Subagent</strong>（独立 context，保持主线干净）</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <strong>某个动作必须 100% 发生，不能依赖 Claude 记得？</strong>
+      <p>是 → <strong>Hooks</strong>（事件触发，机械执行，无例外）</p>
+    </div>
+  </div>
+</div>
+
+<div class="callout green">
+  <strong>它们可以组合使用：</strong>CLAUDE.md 告诉 Claude 项目规范 → Skills 告诉 Claude 怎么做 Code Review → Subagent 用 fresh eyes 执行审查 → Hooks 确保每次提交前必定触发审查 → MCP 连接 Linear 读取相关 ticket 背景。五个工具各司其职，组合起来才是完整的定制化工作流。
+</div>
+</div>
+
+</section>
+
+<footer>
+  <p>based on Anthropic Courses — Claude Code 101 & Learn Claude Code ··· created by Nina & Claude ··· 2026-05-03</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+/* 侧边栏滚动高亮 */
+const links = document.querySelectorAll('.sidebar a[href^="#"]');
+const sections = [...links].map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const active = [...links].find(l => l.getAttribute('href') === '#' + e.target.id);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

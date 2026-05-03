@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 学习笔记I</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── 设计令牌 ── */
+:root {
+  --ink:        #1a1a2e;
+  --ink-soft:   #3d3d5c;
+  --ink-muted:  #6b6b8a;
+  --accent:     #c17d4a;
+  --accent-dim: #d4a574;
+  --rule:       #c8bfb0;
+  --rule-light: #e8e2da;
+  --bg:         #faf8f5;
+  --bg-warm:    #f4f0ea;
+  --bg-card:    #ffffff;
+  --blue-tint:  #eef4fb;
+  --blue-line:  #3b76c4;
+  --green-tint: #edf7f0;
+  --green-line: #2e8b57;
+  --amber-tint: #fdf6ec;
+  --amber-line: #c17d4a;
+  --red-tint:   #fdf0f0;
+  --red-line:   #c04040;
+
+  --f-serif: 'Noto Serif SC', 'Georgia', serif;
+  --f-sans:  'Noto Sans SC', 'system-ui', sans-serif;
+  --f-mono:  'JetBrains Mono', 'Consolas', monospace;
+
+  --r: 6px;
+  --shadow: 0 1px 4px rgba(26,26,46,.08);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Base ── */
+body {
+  font-family: var(--f-serif);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+/* ── Layout ── */
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+nav.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--ink);
+  color: #d0cce8;
+  padding: 36px 0 60px;
+  font-family: var(--f-sans);
+  font-size: 13px;
+}
+.sidebar .logo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 16px;
+}
+.sidebar a {
+  display: block;
+  padding: 5px 20px;
+  color: #a0a0c0;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  line-height: 1.5;
+}
+.sidebar a:hover,
+.sidebar a.active {
+  color: #fff;
+  border-left-color: var(--accent);
+}
+.sidebar .nav-module {
+  font-weight: 600;
+  color: #c8c4e0;
+  padding: 14px 20px 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  text-decoration: none;
+  transition: color .15s;
+}
+a.nav-module:hover {
+  color: #fff;
+}
+
+/* ── Main ── */
+main {
+  padding: 56px 72px 80px 64px;
+  max-width: 820px;
+}
+
+/* ── 文章标题页 ── */
+.title-block {
+  padding-bottom: 36px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 48px;
+}
+.title-block h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.title-block .meta {
+  font-family: var(--f-sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 20px;
+}
+.title-block .meta span::before { content: '— '; }
+
+/* ── 模块标题 ── */
+.module-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 52px 0 6px;
+}
+.module-heading .mod-tag {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.module-heading h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: none;
+  padding: 0;
+}
+.module-rule {
+  height: 2px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  margin-bottom: 24px;
+}
+
+/* ── 小节标题 ── */
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 28px 0 8px;
+}
+
+/* ── 正文段落 ── */
+p { margin: 0 0 12px; color: var(--ink-soft); }
+p:last-child { margin-bottom: 0; }
+
+/* ── 列表 ── */
+ul, ol {
+  padding-left: 1.4em;
+  margin: 8px 0 12px;
+  color: var(--ink-soft);
+}
+li { margin: 4px 0; }
+li strong { color: var(--ink); }
+
+/* ── 分割线 ── */
+hr.section-break {
+  border: none;
+  border-top: 1px solid var(--rule-light);
+  margin: 32px 0;
+}
+
+/* ── 强调块（重要结论） ── */
+.callout {
+  background: var(--blue-tint);
+  border-left: 3px solid var(--blue-line);
+  padding: 14px 18px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 18px 0;
+  font-size: 15px;
+}
+.callout strong { color: var(--ink); }
+.callout.amber {
+  background: var(--amber-tint);
+  border-left-color: var(--amber-line);
+}
+.callout.green {
+  background: var(--green-tint);
+  border-left-color: var(--green-line);
+}
+.callout.red {
+  background: var(--red-tint);
+  border-left-color: var(--red-line);
+}
+
+/* ── Q&A 知识卡片 ── */
+.qa-card {
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  margin: 18px 0;
+  overflow: hidden;
+  font-size: 15px;
+}
+.qa-card .qa-q {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--rule-light);
+  padding: 10px 16px;
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.qa-card .qa-q::before {
+  content: 'Q';
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.qa-card .qa-a {
+  padding: 10px 16px;
+  color: var(--ink-soft);
+}
+.qa-card .qa-a::before {
+  content: 'A　';
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-right: 8px;
+}
+
+/* ── 图示/代码框 ── */
+.diagram {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 18px 22px;
+  border-radius: var(--r);
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid #2a2a3e;
+}
+.diagram .comment { color: #6c7086; }
+.diagram .label   { color: var(--accent-dim); font-weight: 500; }
+.diagram .arrow   { color: #89dceb; }
+.diagram .note    { color: #a6e3a1; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: .875em;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── 对比表格 ── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  font-family: var(--f-sans);
+  box-shadow: var(--shadow);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.compare-table thead tr {
+  background: var(--ink);
+  color: #fff;
+}
+.compare-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+.compare-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-light);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+.compare-table td strong { color: var(--ink); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:nth-child(even) td { background: var(--bg-warm); }
+
+/* ── 步骤流程 ── */
+.steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 16px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--rule-light);
+}
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--f-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+}
+.step-body {
+  padding-bottom: 20px;
+  flex: 1;
+}
+.step-body strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.step-body p { font-size: 14px; margin: 0; }
+
+/* ── 光谱条 ── */
+.spectrum-bar {
+  background: linear-gradient(to right, #e8f4f8, #fff3e0, #ffe0e0);
+  border: 1px solid var(--rule);
+  border-radius: 40px;
+  height: 10px;
+  margin: 10px 0 6px;
+  position: relative;
+}
+.spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 16px;
+}
+
+/* ── 速查卡 ── */
+.quick-ref {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+.quick-ref-item {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+.quick-ref-item .term {
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.quick-ref-item .def { color: var(--ink-soft); line-height: 1.6; }
+
+/* ── 页脚 ── */
+footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule-light);
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── 侧边导航高亮（JS） ── */
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  nav.sidebar { position: static; height: auto; }
+  main { padding: 32px 24px 60px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 侧边导航 ══ -->
+<nav class="sidebar">
+  <div class="logo">Claude Code<br>学习笔记I</div>
+  <a class="nav-module" href="#mod1">模块一 · 认知地基</a>
+  <a href="#m1-chat-vs-code">Chat vs Code</a>
+  <a href="#m1-agent-spectrum">Agent 是光谱</a>
+  <a href="#m1-agent-features">Agent 三大特征</a>
+  <a class="nav-module" href="#mod2">模块二 · Agent Loop</a>
+  <a href="#m2-why-loop">为什么需要循环</a>
+  <a href="#m2-four-steps">四个步骤</a>
+  <a href="#m2-writeback">Write-back 机制</a>
+  <a class="nav-module" href="#mod3">模块三 · 工作原理</a>
+  <a href="#m3-context">Context Window 上下文</a>
+  <a href="#m3-tools">Tools 工具</a>
+  <a href="#m3-permissions">Permission 权限</a>
+  <a class="nav-module" href="#mod5">模块四 · 工作流</a>
+  <a href="#m5-explore">Explore 探索</a>
+  <a href="#m5-plan">Plan 计划</a>
+  <a href="#m5-code">Code 编码</a>
+  <a href="#m5-commit">Commit 提交</a>
+  <a class="nav-module" href="#mod6">模块五 · 总图速查</a>
+  <a href="#mod6-map">全局概念地图</a>
+  <a href="#mod6-concepts">概念速查</a>
+  <a href="#mod6-workflow">工作流速查卡</a>
+  <a href="#mod6-cases">常见场景处置</a>
+</nav>
+
+<!-- ══ 正文 ══ -->
+<main>
+<!-- PLACEHOLDER: content will be filled in steps 2–6 -->
+<div class="title-block">
+  <h1>Claude Code 学习笔记 I</h1>
+  <div class="meta">
+    <span>从零理解 Agent、Agent Loop 与 Claude Code</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     模块一：认知地基
+══════════════════════════════════════ -->
+<section id="mod1">
+<div class="module-heading">
+  <span class="mod-tag">模块一</span>
+  <h2>认知地基 — 先把概念理清</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>在动手用 Claude Code 之前，有几个概念值得先搞清楚。它们乍看相似，却有本质区别——混淆了这些概念，后面越学越绕。本模块的目标不是背定义，而是建立一套<strong>能区分事物的直觉</strong>。</p>
+
+<!-- ── 1.1 Claude Chat vs Claude Code ── -->
+<div id="m1-chat-vs-code">
+<h3>1.1　Claude.ai 和 Claude Code——同一个 AI，两种工作方式</h3>
+
+<p>很多人第一次听到 Claude Code，会以为它是一个独立的、更强大的 AI 模型。其实不是。它们背后用的是<strong>同一个语言模型</strong>，区别在于这个模型被赋予了什么能力、工作在什么环境里。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>维度</th><th>Claude.ai（网页对话）</th><th>Claude Code（终端/IDE）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>底层模型</strong></td><td>Claude</td><td>Claude（同一个）</td></tr>
+    <tr><td><strong>能访问什么</strong></td><td>只有对话窗口里的内容</td><td>你的文件、终端、整个代码库</td></tr>
+    <tr><td><strong>能做什么</strong></td><td>生成文字、回答问题、分析粘贴进来的代码</td><td>直接读写文件、运行命令、搜索网络</td></tr>
+    <tr><td><strong>工作方式</strong></td><td>你问，它答，循环由你驱动</td><td>它自主循环，直到任务完成</td></tr>
+    <tr><td><strong>定位</strong></td><td>对话助手</td><td>AI Agent</td></tr>
+  </tbody>
+</table>
+
+<div class="callout amber">
+  <strong>核心差异一句话：</strong>Claude.ai 是你在和 AI <em>聊</em>，Claude Code 是 AI 在帮你<em>干活</em>——它有手，能直接动你的文件和终端。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.2 Agent 是光谱 ── -->
+<div id="m1-agent-spectrum">
+<h3>1.2　Agent 不是一个开关，而是一条光谱</h3>
+
+<p>学习 Claude Code 时，文档会反复说它是"AI Agent"。但如果你追问"Agent 到底是什么"，很容易掉进一个误区：以为 Agent 是一种工具的<strong>分类</strong>——要么是 Chatbot，要么是 Agent，非此即彼。</p>
+
+<p>更准确的理解是：Agent 是一个<strong>程度</strong>的概念，像一条光谱。不同的 AI 工具在这条光谱上占据不同的位置，取决于它能自主完成多少连续步骤、需要多少人类介入。</p>
+
+<div class="spectrum-bar"></div>
+<div class="spectrum-labels">
+  <span>← 纯 Chatbot（每步都要人驱动）</span>
+  <span>完全自主 Agent →</span>
+</div>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>例子</th><th>自主程度</th><th>需要人介入的频率</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>FAQ 机器人</td><td>极低</td><td>每句话都要人发起</td></tr>
+    <tr><td>Claude.ai 对话</td><td>低</td><td>每个问题都要人推进</td></tr>
+    <tr><td>Claude.ai + 工具调用</td><td>中低</td><td>每个任务段都要人确认</td></tr>
+    <tr><td><strong>Claude Code（默认模式）</strong></td><td><strong>中高</strong></td><td><strong>关键操作前询问权限</strong></td></tr>
+    <tr><td>Claude Code（自动接受）</td><td>高</td><td>只在任务完成时介入</td></tr>
+  </tbody>
+</table>
+
+<div class="qa-card">
+  <div class="qa-q">Claude.ai 现在也能联网搜索、也能分析文件——它算不算 Agent？</div>
+  <div class="qa-a">算"部分 Agent"，但程度比 Claude Code 低得多。关键不在于"能不能调用工具"，而在于<strong>谁在驱动循环</strong>：Claude.ai 每次都需要你提问来推进；Claude Code 收到一个任务后，会自己规划步骤、调用工具、验证结果、反复迭代，直到完成——整个过程你不用一直盯着。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.3 Agent 三要素 ── -->
+<div id="m1-agent-features">
+<h3>1.3　Agent 的三个核心特征</h3>
+
+<p>光谱上越靠右，就越接近"真正的 Agent"。判断一个 AI 工具在光谱上位置的标准，是它具备以下三个特征的程度：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>多步规划——把复杂目标拆解成步骤序列</strong>
+      <p>不只是回答"下一步怎么做"，而是能自己看清整条路：先做 A，再做 B，如果 B 失败就走 C。这是真正自主的前提。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>自主执行——做→检查→修正→再做的循环</strong>
+      <p>不等你每步确认，而是自己跑完整个循环：执行一步、观察结果、判断是否达标、不达标就修正再试。这个循环就是 Agent Loop（下一模块详讲）。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>工具使用——主动判断何时调用外部能力</strong>
+      <p>不只是"会用工具"，而是<em>自己决定</em>什么时候需要用、用哪个工具、如何处理工具返回的结果。工具是 Agent 的手和眼，让它能接触现实世界。</p>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>两个常见误解要破掉：</strong><br>
+  "有记忆功能 = Agent"——❌ 记忆只是存档，不等于能自主规划和执行。<br>
+  "能调用工具 = Agent"——❌ 如果每次调用都要你发指令，驱动循环的还是你，不是它。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">那 Claude Code 具体在哪里体现这三个特征？</div>
+  <div class="qa-a">以"帮我实现用户登录"为例：Claude Code 会<strong>自己规划</strong>（前端表单 → 后端验证 → 写测试）、<strong>自主执行</strong>（写文件、运行测试、发现报错、修复、再跑测试）、<strong>调用工具</strong>（读文件工具、写文件工具、bash 命令工具），整个过程不需要你每步发令。这三点同时成立，所以它是 Agent。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块二：Agent Loop 原理
+══════════════════════════════════════ -->
+<section id="mod2">
+<div class="module-heading">
+  <span class="mod-tag">模块二</span>
+  <h2>Agent Loop 原理 — 循环是 Agent 的心脏</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>上一模块说，Agent 的核心特征之一是"自主执行——做→检查→修正→再做的循环"。这个循环有一个专门的名字：<strong>Agent Loop</strong>（也叫 Agentic Loop）。理解它，Claude Code 的所有行为就有了根基。</p>
+
+<div id="m2-why-loop">
+<h3>2.1　没有循环，人就是那个循环</h3>
+
+<p>想象这样一个场景：你有一个极其聪明的助手，能推理代码、规划方案、写出完美的答案——但它<strong>没有手</strong>，什么都碰不了。每次它说"运行这个命令"，你就得自己去跑，把输出结果粘贴回来；它说"修改第 12 行"，你就得自己去改，再告诉它改完了。</p>
+
+<p>这种模式下，<strong>你就是那个循环</strong>。一两步还好，但真实任务往往需要 10、20 甚至 50 次工具调用，全靠人工中转完全不现实。</p>
+
+<div class="callout amber">
+  <strong>Agent Loop 解决的核心问题：</strong>把"人工中转"这一步自动化——让代码代替你驱动循环，把工具执行结果自动喂回给模型，不需要人在中间传话。
+</div>
+</div>
+
+<hr class="section-break">
+
+<div id="m2-four-steps">
+<h3>2.2　Agent Loop 的四个步骤</h3>
+
+<p>整个循环可以拆成四步，周而复始，直到任务完成：</p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>你输入 Prompt——任务进入循环</strong>
+      <p>你的提问或指令成为对话的第一条消息，循环从这里启动。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>模型回应——文字或工具调用</strong>
+      <p>模型读取完整的对话历史，返回两种结果之一：纯文字回答（任务完成），或者一个工具调用指令（"运行这个命令"、"读这个文件"）。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>执行工具——接触真实世界</strong>
+      <p>外层程序（harness）拦截工具调用指令，真正去执行它：运行 bash 命令、读写文件、搜索网络……并收集执行结果。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Write-back——把结果写回对话，再次循环</strong>
+      <p>将工具执行的真实结果作为新消息追加到对话历史中，然后跳回第 2 步，让模型看到结果后决定下一步。</p>
+    </div>
+  </div>
+</div>
+
+<svg viewBox="0 0 700 310" width="100%" style="max-width:700px;display:block;margin:20px 0;font-family:'Noto Sans SC',sans-serif;">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#89dceb"/></marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a9a6a"/></marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c17d4a"/></marker>
+    <marker id="arr-dim" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#888"/></marker>
+  </defs>
+
+  <!-- ① 你的 Prompt -->
+  <rect x="10" y="110" width="110" height="38" rx="6" fill="#2a2a4a" stroke="#5b5b8a" stroke-width="1.5"/>
+  <text x="65" y="127" text-anchor="middle" fill="#c8c4e0" font-size="12">① 你的</text>
+  <text x="65" y="143" text-anchor="middle" fill="#c8c4e0" font-size="12">Prompt</text>
+  <line x1="120" y1="129" x2="178" y2="129" stroke="#89dceb" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ② 模型 -->
+  <rect x="178" y="100" width="130" height="58" rx="6" fill="#3a3060" stroke="#7b6fa8" stroke-width="1.5"/>
+  <text x="243" y="122" text-anchor="middle" fill="#e0ddf8" font-size="13" font-weight="600">② 模型</text>
+  <text x="243" y="140" text-anchor="middle" fill="#9090c0" font-size="10">读取完整对话历史</text>
+  <text x="243" y="153" text-anchor="middle" fill="#9090c0" font-size="10">决定下一步行动</text>
+
+  <!-- 分支说明 -->
+  <text x="340" y="92" text-anchor="middle" fill="#6c7086" font-size="10">两种输出 ↗↘</text>
+
+  <!-- 上分支：纯文字 → 完成 -->
+  <line x1="308" y1="113" x2="388" y2="66" stroke="#89dceb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="362" y="80" text-anchor="middle" fill="#6c7086" font-size="10">纯文字回答</text>
+  <rect x="388" y="46" width="120" height="38" rx="6" fill="#1e3a2a" stroke="#4a9a6a" stroke-width="1.5"/>
+  <text x="448" y="62" text-anchor="middle" fill="#a6e3a1" font-size="12" font-weight="600">完成，循环结束</text>
+  <text x="448" y="77" text-anchor="middle" fill="#6c9a7a" font-size="10">任务达成 / 模型判断已完成</text>
+
+  <!-- 下分支：工具调用 -->
+  <line x1="308" y1="145" x2="388" y2="183" stroke="#89dceb" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="362" y="175" text-anchor="middle" fill="#6c7086" font-size="10">工具调用指令</text>
+
+  <!-- ③ 执行工具 -->
+  <rect x="388" y="183" width="140" height="52" rx="6" fill="#2a3a4a" stroke="#5b8fa8" stroke-width="1.5"/>
+  <text x="458" y="204" text-anchor="middle" fill="#c8e0f0" font-size="12" font-weight="600">③ 执行工具</text>
+  <text x="458" y="220" text-anchor="middle" fill="#7090a8" font-size="10">Harness 真正执行</text>
+  <text x="458" y="232" text-anchor="middle" fill="#7090a8" font-size="10">bash · 读写文件 · 搜索网络</text>
+
+  <!-- ④ write-back 折线：从执行工具左边 → 左 → 下 → 左 → 上回到模型底部 -->
+  <polyline points="388,209 310,209 310,268 243,268 243,158" fill="none" stroke="#c17d4a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-orange)"/>
+  <text x="275" y="285" text-anchor="middle" fill="#c17d4a" font-size="11" font-weight="600">④ write-back</text>
+  <text x="275" y="300" text-anchor="middle" fill="#888" font-size="10">执行结果追加到对话历史，模型再次判断</text>
+
+  <!-- 你随时可介入 -->
+  <rect x="530" y="255" width="155" height="42" rx="6" fill="#f5e8c8" stroke="#c8a860" stroke-width="1.2"/>
+  <text x="607" y="272" text-anchor="middle" fill="#5a4010" font-size="11" font-weight="600">你随时可介入</text>
+  <text x="607" y="288" text-anchor="middle" fill="#7a6030" font-size="10">纠正方向 · 补充上下文</text>
+  <line x1="530" y1="268" x2="460" y2="235" stroke="#888" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-dim)"/>
+</svg>
+
+<div class="qa-card">
+  <div class="qa-q">循环什么时候停下来？会不会一直转？</div>
+  <div class="qa-a">循环的终止条件很明确：当模型的回应是<strong>纯文字</strong>（而非工具调用）时，说明它认为任务完成了，循环自然结束。所以不会无限转——模型自己决定"我做完了"。如果任务描述不清晰，也可以随时手动打断它。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<div id="m2-writeback">
+<h3>2.3　Write-back——整个设计最关键的一步</h3>
+
+<p>四个步骤里，最容易被忽视、却最重要的是第四步：<strong>Write-back</strong>。</p>
+
+<p>语言模型本身是"无状态"的——每次被调用，它只能看到传给它的消息历史，看不到外部世界发生了什么。如果工具执行了一个命令，但结果没有写回对话历史，模型就完全不知道发生了什么，只能凭空猜测。</p>
+
+<div class="callout green">
+  <strong>Write-back 的作用：</strong>把"真实世界的反馈"注入模型的视野。模型说"运行测试"，测试跑完报了错，错误信息通过 write-back 出现在对话历史里，模型才能看到、才能据此修正。没有 write-back，模型就是盲的。
+</div>
+
+<p>这也解释了为什么 Agent 能"自主迭代"：每一轮工具执行的结果都被写回来，模型始终能看到最新的真实状态，从而做出有依据的下一步决策——整个过程不需要人介入。</p>
+
+<div class="qa-card">
+  <div class="qa-q">我不会编程，需要理解 write-back 的技术细节吗？</div>
+  <div class="qa-a">不需要。只要记住一件事：<strong>Claude Code 之所以能自己发现错误并修复，是因为每次工具执行的结果都会自动反馈给它</strong>。它不是在猜，而是真的"看到"了测试失败、报错信息，然后据此调整。这就是 write-back 带给你的体感。</div>
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">"harness"是什么意思？</div>
+  <div class="qa-a">Harness 直译是"驾驭系统"，在这里指包裹在模型外面的那层管理代码——负责维护对话历史、检测工具调用、真正去执行工具、把结果写回来。<strong>Claude Code 本身就是一个 harness</strong>。你不需要自己写它，但理解它的存在，能帮你明白谁在驱动循环：不是模型，而是 harness 在外面不断转圈，模型只负责每次被调用时给出判断。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     MODULE 3: Claude Code 能做什么
+     ============================================================ -->
+<section id="mod3">
+<div class="module-heading">
+  <span class="mod-tag">模块三</span>
+  <h2>工作原理 — Context、Tools、Permission</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>知道 Claude Code 是什么之后，下一个问题是：它怎么工作？这一模块从三个机制入手——模型的记忆边界、与世界交互的手段、以及你对它的控制权。</p>
+
+<!-- ── 3.1 Context Window ── -->
+<div id="m3-context">
+<h3>3.1　Context Window（上下文窗口）— 模型的工作记忆</h3>
+
+<p>模型在工作时，有一个有限的「视野范围」，叫做 <strong>Context Window（上下文窗口）</strong>。你可以把它理解成工作台的桌面空间——桌面越大，能同时摊开的东西越多，但总有上限。</p>
+
+<p>对话历史、读入的代码文件、工具执行结果……所有这些都占用上下文窗口。当窗口快满时，Claude Code 会自动做 <strong>Compaction（上下文压缩）</strong>：把较早的对话历史压缩成摘要，保留关键信息，腾出空间继续工作。</p>
+
+<div class="callout callout-amber">
+  <strong>长对话要注意上下文。</strong>如果你发现 Claude Code 开始「忘事」或重复之前已解决的问题，很可能是上下文被压缩了。这时候可以开新会话，或者把关键信息写进 CLAUDE.md 文件，让它在跨会话中保持记忆。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">上下文窗口越大越好吗？</div>
+  <div class="qa-a">更大的 Context Window 确实意味着模型能「记住」更多内容。但这不是越大越好——更大的上下文意味着每次调用费用更高、响应更慢。Claude Code 的设计目标是在有限窗口内高效工作：它会主动搜索只读取相关文件，而不是把整个项目都塞进去。</div>
+</div>
+</div>
+
+<!-- ── 3.2 Tools ── -->
+<div id="m3-tools">
+<h3>3.2　Tools（工具）— 模型与世界交互的手段</h3>
+
+<p>模型本身只能「说话」——是 <strong>Tools（工具）</strong> 赋予了它读、写、执行的能力。没有工具，Claude Code 就只是一个问答对话框；有了工具，它才能真正「做事」。Claude Code 配备了四类工具：</p>
+
+<table class="compare-table">
+  <thead><tr><th>工具类型</th><th>具体行为</th><th>你的感受</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>读取代码库</strong></td>
+      <td>搜索文件、阅读源码、检索 Git 历史</td>
+      <td>它能理解你的整个项目，而不只是你粘贴过来的片段</td>
+    </tr>
+    <tr>
+      <td><strong>编辑文件</strong></td>
+      <td>创建、修改、删除文件</td>
+      <td>直接改代码，不需要你手动复制粘贴</td>
+    </tr>
+    <tr>
+      <td><strong>运行命令</strong></td>
+      <td>执行终端命令、跑测试、安装依赖</td>
+      <td>它能看到命令执行的真实结果，自己发现并修复错误</td>
+    </tr>
+    <tr>
+      <td><strong>搜索网络</strong></td>
+      <td>查询最新文档、搜索错误信息</td>
+      <td>知识不局限于训练截止日期，能查到最新内容</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-blue">
+  <strong>工具是 Agent Loop 的执行层。</strong>回想模块二的循环：模型决定调用哪个工具 → Harness 真正去执行 → 结果 write-back 回对话。工具就是这个循环里「真正触碰现实」的那一步。
+</div>
+</div>
+
+<!-- ── 3.3 Permission ── -->
+<div id="m3-permissions">
+<h3>3.3　Permission（权限）— 你对 Claude Code 的控制粒度</h3>
+
+<p>Claude Code 在采取行动前，总是需要某种形式的「授权」。这套授权机制叫做 <strong>Permission（权限）</strong>，通过三种模式来控制——在输入框左下角按 <kbd style="background:#f0ece4;border:1px solid #ccc;border-radius:3px;padding:1px 6px;font-size:.85em;">Shift + Tab</kbd> 可以在三种模式之间循环切换：</p>
+
+<table class="compare-table">
+  <thead><tr><th>模式</th><th>英文标识</th><th>Claude Code 能做什么</th><th>何时切换到这个模式</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>默认模式<br><small>（即逐步审批）</small></strong></td>
+      <td>Default / Approval</td>
+      <td>读 + 写 + 执行，<strong>每步操作都需要你确认</strong>才继续</td>
+      <td>任务清晰，但想逐步确认每一步；学习阶段首选</td>
+    </tr>
+    <tr>
+      <td><strong>自动接受模式</strong></td>
+      <td>Auto-accept</td>
+      <td>读 + 写 + 执行，文件编辑自动通过；高风险操作仍会询问</td>
+      <td>信任任务，希望减少打断、让它流畅连续执行</td>
+    </tr>
+    <tr>
+      <td><strong>计划模式</strong></td>
+      <td>Plan Mode</td>
+      <td><strong>只读</strong>，制定计划但不执行任何修改</td>
+      <td>第一次接触新任务，或执行到一半想重新审视方向</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-blue">
+  <strong>模式不是一次性选择。</strong>按 <kbd style="background:#f0ece4;border:1px solid #ccc;border-radius:3px;padding:1px 6px;font-size:.85em;">Shift + Tab</kbd> 随时切换。同一个任务里可以多次切换——先用 Plan Mode 探索，切到 Default 执行关键步骤，再切到 Auto-accept 跑收尾工作。
+</div>
+
+</div>
+
+</section>
+
+<!-- ============================================================
+     MODULE 4: 怎么用 Claude Code
+     ============================================================ -->
+<!-- ============================================================
+     MODULE 5: 探索 → 计划 → 编码 → 提交工作流
+     ============================================================ -->
+<section id="mod5">
+<div class="module-heading">
+  <span class="mod-tag">模块四</span>
+  <h2>日常工作流 — Explore → Plan → Code → Commit</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>如果你只从这份笔记里带走一件事，就带走这个工作流。大多数人会跳过前两步直接让 Claude Code 写代码——这样做并非不行，只是后期纠偏的成本会更高。设计逻辑是：<strong>在付出最低代价的阶段做最多的思考，在不可逆的阶段做最少的意外。</strong></p>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num" style="background:#5b8fa8;flex-shrink:0;">E</div>
+    <div class="step-body">
+      <strong id="m5-explore">Explore（探索）— 建立现状地图</strong>
+      <p>切换到 Plan Mode，提问：「这个功能目前在哪里实现？」「如果我要加 X，会影响哪些文件？」Claude Code 只读不写，自由探索代码库和 Git 历史。<em>完成信号：你知道「要动哪里」。</em></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#7b6fa8;flex-shrink:0;">P</div>
+    <div class="step-body">
+      <strong id="m5-plan">Plan（计划）— 对齐方向，零代价纠偏</strong>
+      <p>仍在 Plan Mode，让 Claude Code 列出：要修改哪些文件、需要新增哪些依赖、实现步骤、潜在风险。这是<strong style="display:inline;font-size:inherit;">最佳纠偏时机</strong>——代码还没动，改方向的代价为零。<em>完成信号：方案经你审阅并批准。</em></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#8fa85b;flex-shrink:0;">C</div>
+    <div class="step-body">
+      <strong id="m5-code">Code（编码）— 执行、验证、修复</strong>
+      <p>批准计划后切换到 Default 或 Auto-accept，Claude Code 按步骤修改文件、运行测试、处理报错。三个技巧：<strong style="display:inline;font-size:inherit;">给出成功标准</strong>（「用户能切换深色模式，刷新后保持偏好」比「加个深色模式」清晰得多）；<strong style="display:inline;font-size:inherit;">提供测试套件</strong>（有测试 = Claude Code 有自我校验的尺子，无需你介入就能验证结果）；<strong style="display:inline;font-size:inherit;">遇到循环卡死</strong>（直接告诉它「这个方向走不通，原因是……换个思路」）。<em>完成信号：你自测通过。</em></p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#a85b5b;flex-shrink:0;">✓</div>
+    <div class="step-body">
+      <strong id="m5-commit">Commit（提交）— 审查、生成信息、推送</strong>
+      <p>你满意了才到这一步。两个好习惯：<strong style="display:inline;font-size:inherit;">跑子 Agent 做代码审查</strong>（子 Agent 是全新实例，不继承主会话偏见，能更客观地发现问题）；<strong style="display:inline;font-size:inherit;">让 Claude Code 生成提交信息</strong>（告诉它你的提交风格，它会根据实际改动生成准确描述）。<em>完成信号：代码已推送。</em></p>
+    </div>
+  </div>
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">四步工作流感觉有点繁琐，简单任务也要走完整流程吗？</div>
+  <div class="qa-a">不需要。按复杂度弹性使用：<strong>简单改动</strong>（改一行文字、修一个明显 bug）直接提示，不用 Plan Mode；<strong>中等任务</strong>（加一个功能）建议至少走 Plan 步骤；<strong>复杂任务</strong>（新功能模块、架构变动）强烈建议完整走四步。越复杂、越不可逆，前期计划的收益越高。</div>
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">子 Agent 代码审查是什么意思？</div>
+  <div class="qa-a">Claude Code 支持启动一个独立的子 Agent 来审查代码。子 Agent 是全新的 AI 实例，不继承主会话的上下文——所以它不会因为「自己写的代码」而产生确认偏差，能更客观地发现问题。在提交之前让子 Agent 跑一遍，相当于让一个没有参与过开发的同事做 Code Review。</div>
+</div>
+
+</section>
+
+<!-- ============================================================
+     MODULE 6: 总图与速查表
+     ============================================================ -->
+<section id="mod6">
+<div class="module-heading">
+  <span class="mod-tag">模块五</span>
+  <h2>总图与速查</h2>
+</div>
+<div class="module-rule"></div>
+
+<h3 id="mod6-map">5.1 全局概念地图</h3>
+<p>Claude Code 是一个 Agent——它通过 <strong>Agent Loop</strong> 自主运转：你输入 Prompt，Harness 驱动模型调用 Tools，工具执行结果经由 Write-back 写回对话历史，模型据此决定下一步，直到任务完成。Context Window 是这个循环的记忆边界，Permission 模式决定你在循环中的介入程度。下图展示了这些概念之间的层级关系：</p>
+
+<svg viewBox="0 0 600 400" width="100%" style="max-width:600px;display:block;margin:20px 0;font-family:'Noto Sans SC',sans-serif;">
+  <defs>
+    <marker id="g-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#89dceb"/></marker>
+    <marker id="g-arr-dim" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6c7086"/></marker>
+  </defs>
+
+  <!-- 你 · 使用者 -->
+  <rect x="140" y="10" width="320" height="52" rx="8" fill="#1e3a2a" stroke="#4a9a6a" stroke-width="1.5"/>
+  <text x="300" y="32" text-anchor="middle" fill="#a6e3a1" font-size="13" font-weight="600">你 · 使用者</text>
+  <text x="300" y="52" text-anchor="middle" fill="#6c9a7a" font-size="11">写提示词 → 审阅计划 → 批准操作 → 测试结果</text>
+
+  <!-- arrow down -->
+  <line x1="300" y1="62" x2="300" y2="88" stroke="#89dceb" stroke-width="1.5" marker-end="url(#g-arr)"/>
+  <text x="320" y="80" fill="#6c7086" font-size="10">指令 / 确认</text>
+
+  <!-- Harness -->
+  <rect x="60" y="88" width="480" height="100" rx="8" fill="#2a2a4a" stroke="#5b5b8a" stroke-width="1.5"/>
+  <text x="300" y="110" text-anchor="middle" fill="#c8c4e0" font-size="13" font-weight="600">Claude Code · Harness（驾驭层）</text>
+  <text x="300" y="130" text-anchor="middle" fill="#8888aa" font-size="11">维护对话历史 → 调用模型 → 检测工具调用 → 执行工具</text>
+  <!-- write-back arrow inside harness -->
+  <path d="M480,130 Q520,130 520,155 Q520,170 480,170 L120,170 Q80,170 80,155 Q80,130 120,130" fill="none" stroke="#c17d4a" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="300" y="167" text-anchor="middle" fill="#c17d4a" font-size="10">write-back（执行结果写回对话历史）</text>
+  <!-- mode labels -->
+  <text x="130" y="185" text-anchor="middle" fill="#7b6fa8" font-size="10">[Plan Mode] 只读</text>
+  <text x="460" y="185" text-anchor="middle" fill="#5b8fa8" font-size="10">[Default/Auto] 读+写+执行</text>
+
+  <!-- arrows down to model and tools -->
+  <line x1="180" y1="188" x2="180" y2="230" stroke="#89dceb" stroke-width="1.5" marker-end="url(#g-arr)"/>
+  <line x1="420" y1="188" x2="420" y2="230" stroke="#89dceb" stroke-width="1.5" marker-end="url(#g-arr)"/>
+
+  <!-- Claude 模型 -->
+  <rect x="60" y="230" width="220" height="80" rx="8" fill="#3a3060" stroke="#7b6fa8" stroke-width="1.5"/>
+  <text x="170" y="252" text-anchor="middle" fill="#e0ddf8" font-size="12" font-weight="600">Claude 模型</text>
+  <text x="170" y="270" text-anchor="middle" fill="#9090c0" font-size="10">理解任务 · 制定计划</text>
+  <text x="170" y="284" text-anchor="middle" fill="#9090c0" font-size="10">分析结果 · 决定下一步</text>
+  <text x="170" y="298" text-anchor="middle" fill="#9090c0" font-size="10">判断任务是否完成</text>
+
+  <!-- Tools -->
+  <rect x="320" y="230" width="220" height="80" rx="8" fill="#2a3a4a" stroke="#5b8fa8" stroke-width="1.5"/>
+  <text x="430" y="252" text-anchor="middle" fill="#c8e0f0" font-size="12" font-weight="600">Tools（工具集）</text>
+  <text x="430" y="270" text-anchor="middle" fill="#7090a8" font-size="10">读取文件 / 搜索代码库</text>
+  <text x="430" y="284" text-anchor="middle" fill="#7090a8" font-size="10">编辑 / 创建 / 删除文件</text>
+  <text x="430" y="298" text-anchor="middle" fill="#7090a8" font-size="10">执行终端命令 / 搜索网络</text>
+
+  <!-- Tools arrow straight down to 你的项目 -->
+  <line x1="430" y1="310" x2="430" y2="355" stroke="#6c7086" stroke-width="1.2" marker-end="url(#g-arr-dim)"/>
+
+  <!-- 你的项目 — directly below Tools -->
+  <rect x="370" y="355" width="120" height="36" rx="6" fill="#1a2a1a" stroke="#3a6a3a" stroke-width="1.2"/>
+  <text x="430" y="370" text-anchor="middle" fill="#80a880" font-size="11">你的项目</text>
+  <text x="430" y="384" text-anchor="middle" fill="#507050" font-size="10">代码 / 测试</text>
+</svg>
+
+<h3 id="mod6-concepts">5.2 核心概念速查</h3>
+
+<div class="quick-ref">
+  <div>
+    <strong>Agent</strong><br>
+    能自主多步骤规划和执行的 AI 系统。Claude Code 是一个以编程为专长的 Agent。
+  </div>
+  <div>
+    <strong>Agent Loop（Agent 循环）</strong><br>
+    发送消息 → 模型响应 → 执行工具 → 写回结果 → 重复，直到模型认为任务完成。
+  </div>
+  <div>
+    <strong>Write-back（写回）</strong><br>
+    把工具执行的真实结果放回对话历史，让模型「看见」现实世界的反馈，这是循环能自我修正的关键。
+  </div>
+  <div>
+    <strong>Harness（驾驭层）</strong><br>
+    驱动循环的外层代码，负责维护历史、执行工具、写回结果。Claude Code 本身就是一个 harness。
+  </div>
+  <div>
+    <strong>Context Window（上下文窗口）</strong><br>
+    模型在一次对话中能「看到」的全部内容上限。Claude Code 会在接近上限时自动压缩历史。
+  </div>
+  <div>
+    <strong>Tools（工具）</strong><br>
+    赋予模型与现实交互能力的接口——读文件、写文件、跑命令、搜网页。没有工具，模型只能「说话」。
+  </div>
+  <div>
+    <strong>Permission（权限）</strong><br>
+    控制 Claude Code 行动前是否需要你确认。Default 逐步审批，Auto-accept 自动通过，Plan Mode 只读。
+  </div>
+  <div>
+    <strong>Plan Mode（计划模式）</strong><br>
+    只读状态，Claude Code 探索代码库并制定方案，不做任何修改。用 Shift+Tab 切换。
+  </div>
+</div>
+
+<h3 id="mod6-workflow">5.3 工作流速查卡</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>阶段</th><th>在做什么</th><th>推荐模式</th><th>完成信号</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Explore</strong></td>
+      <td>建立现状地图，找到相关文件</td>
+      <td>计划模式（只读）</td>
+      <td>你知道「要动哪里」</td>
+    </tr>
+    <tr>
+      <td><strong>Plan</strong></td>
+      <td>制定实施方案，对齐目标</td>
+      <td>计划模式（只读）</td>
+      <td>方案经你审阅并批准</td>
+    </tr>
+    <tr>
+      <td><strong>Code</strong></td>
+      <td>执行修改，运行测试，修复问题</td>
+      <td>默认 / 自动接受</td>
+      <td>你自测通过</td>
+    </tr>
+    <tr>
+      <td><strong>Commit</strong></td>
+      <td>子 Agent 审查 → 生成提交信息 → push</td>
+      <td>默认</td>
+      <td>代码已推送</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="mod6-cases">5.4 常见场景处置</h3>
+
+<table class="compare-table">
+  <thead><tr><th>遇到的情况</th><th>原因</th><th>处置方法</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Claude Code 反复在同一问题打转</td>
+      <td>缺少关键约束或误解了前提</td>
+      <td>明确指出错误方向 + 把限制写入 CLAUDE.md</td>
+    </tr>
+    <tr>
+      <td>它开始「忘事」或重复已解决的问题</td>
+      <td>上下文窗口被压缩</td>
+      <td>开新会话 / 把关键信息写入 CLAUDE.md</td>
+    </tr>
+    <tr>
+      <td>任务复杂，不知从哪里下手</td>
+      <td>任务边界不清晰</td>
+      <td>先用计划模式探索，再制定方案</td>
+    </tr>
+    <tr>
+      <td>改完代码发现引入了新问题</td>
+      <td>缺乏自动化测试做安全网</td>
+      <td>提供或要求生成测试套件，再继续修改</td>
+    </tr>
+    <tr>
+      <td>不确定它做的改动是否正确</td>
+      <td>主 Agent 有确认偏差</td>
+      <td>让子 Agent 做独立的代码审查</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-blue" style="margin-top:28px;">
+  <strong>记住这一句话：</strong>Claude Code 是一个 Agent——它能自主多步骤地完成任务，因为它有工具、有循环、有写回机制。你的工作不是替它思考每一步，而是说清楚「什么叫完成」，然后在关键节点做判断。
+</div>
+
+</section>
+
+<footer>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">学习资料</div>
+      <div>1. Anthropic Courses — Claude Code 101</div>
+      <div>2. Learn Claude Code — s01 The Agent Loop</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">笔记创作</div>
+      <div>Nina &amp; Claude</div>
+      <div>2026-05-03</div>
+    </div>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script>
+// 侧边栏滚动高亮
+const links = document.querySelectorAll('.sidebar a');
+const sections = document.querySelectorAll('section[id], div[id]');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 学习笔记II — 记忆系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── 设计令牌 ── */
+:root {
+  --ink:        #1a1a2e;
+  --ink-soft:   #3d3d5c;
+  --ink-muted:  #6b6b8a;
+  --accent:     #c17d4a;
+  --accent-dim: #d4a574;
+  --rule:       #c8bfb0;
+  --rule-light: #e8e2da;
+  --bg:         #faf8f5;
+  --bg-warm:    #f4f0ea;
+  --bg-card:    #ffffff;
+  --blue-tint:  #eef4fb;
+  --blue-line:  #3b76c4;
+  --green-tint: #edf7f0;
+  --green-line: #2e8b57;
+  --amber-tint: #fdf6ec;
+  --amber-line: #c17d4a;
+  --red-tint:   #fdf0f0;
+  --red-line:   #c04040;
+
+  --f-serif: 'Noto Serif SC', 'Georgia', serif;
+  --f-sans:  'Noto Sans SC', 'system-ui', sans-serif;
+  --f-mono:  'JetBrains Mono', 'Consolas', monospace;
+
+  --r: 6px;
+  --shadow: 0 1px 4px rgba(26,26,46,.08);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Base ── */
+body {
+  font-family: var(--f-serif);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+/* ── Layout ── */
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+nav.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--ink);
+  color: #d0cce8;
+  padding: 36px 0 60px;
+  font-family: var(--f-sans);
+  font-size: 13px;
+}
+.sidebar .logo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 16px;
+}
+.sidebar a {
+  display: block;
+  padding: 5px 20px;
+  color: #a0a0c0;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  line-height: 1.5;
+}
+.sidebar a:hover,
+.sidebar a.active {
+  color: #fff;
+  border-left-color: var(--accent);
+}
+.sidebar .nav-module {
+  font-weight: 600;
+  color: #c8c4e0;
+  padding: 14px 20px 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  text-decoration: none;
+  transition: color .15s;
+}
+a.nav-module:hover { color: #fff; }
+
+/* ── Main ── */
+main {
+  padding: 56px 72px 80px 64px;
+  max-width: 820px;
+}
+
+/* ── 文章标题页 ── */
+.title-block {
+  padding-bottom: 36px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 48px;
+}
+.title-block h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.title-block .meta {
+  font-family: var(--f-sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 20px;
+}
+.title-block .meta span::before { content: '— '; }
+
+/* ── 模块标题 ── */
+.module-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 52px 0 6px;
+}
+.module-heading .mod-tag {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.module-heading h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: none;
+  padding: 0;
+}
+.module-rule {
+  height: 2px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  margin-bottom: 24px;
+}
+
+/* ── 小节标题 ── */
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 28px 0 8px;
+}
+
+/* ── 正文段落 ── */
+p { margin: 0 0 12px; color: var(--ink-soft); }
+p:last-child { margin-bottom: 0; }
+
+/* ── 列表 ── */
+ul, ol {
+  padding-left: 1.4em;
+  margin: 8px 0 12px;
+  color: var(--ink-soft);
+}
+li { margin: 4px 0; }
+li strong { color: var(--ink); }
+
+/* ── 分割线 ── */
+hr.section-break {
+  border: none;
+  border-top: 1px solid var(--rule-light);
+  margin: 32px 0;
+}
+
+/* ── 强调块 ── */
+.callout {
+  background: var(--blue-tint);
+  border-left: 3px solid var(--blue-line);
+  padding: 14px 18px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 18px 0;
+  font-size: 15px;
+}
+.callout strong { color: var(--ink); }
+.callout.amber {
+  background: var(--amber-tint);
+  border-left-color: var(--amber-line);
+}
+.callout.green {
+  background: var(--green-tint);
+  border-left-color: var(--green-line);
+}
+.callout.red {
+  background: var(--red-tint);
+  border-left-color: var(--red-line);
+}
+
+/* ── Q&A 知识卡片 ── */
+.qa-card {
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  margin: 18px 0;
+  overflow: hidden;
+  font-size: 15px;
+}
+.qa-card .qa-q {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--rule-light);
+  padding: 10px 16px;
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.qa-card .qa-q::before {
+  content: 'Q';
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.qa-card .qa-a {
+  padding: 10px 16px;
+  color: var(--ink-soft);
+}
+.qa-card .qa-a::before {
+  content: 'A　';
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-right: 8px;
+}
+
+/* ── 图示/代码框 ── */
+.diagram {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 18px 22px;
+  border-radius: var(--r);
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid #2a2a3e;
+}
+.diagram .comment { color: #6c7086; }
+.diagram .label   { color: var(--accent-dim); font-weight: 500; }
+.diagram .arrow   { color: #89dceb; }
+.diagram .note    { color: #a6e3a1; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: .875em;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── 对比表格 ── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  font-family: var(--f-sans);
+  box-shadow: var(--shadow);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.compare-table thead tr {
+  background: var(--ink);
+  color: #fff;
+}
+.compare-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+.compare-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-light);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+.compare-table td strong { color: var(--ink); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:nth-child(even) td { background: var(--bg-warm); }
+
+/* ── 步骤流程 ── */
+.steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 16px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--rule-light);
+}
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--f-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+}
+.step-body {
+  padding-bottom: 20px;
+  flex: 1;
+}
+.step-body strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.step-body p { font-size: 14px; margin: 0; }
+
+/* ── 速查卡 ── */
+.quick-ref {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+.quick-ref-item {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+.quick-ref-item .term {
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.quick-ref-item .def { color: var(--ink-soft); line-height: 1.6; }
+
+/* ── 大对照表（模块六专用）── */
+.big-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 13px;
+  font-family: var(--f-sans);
+  box-shadow: 0 2px 8px rgba(26,26,46,.1);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.big-table thead tr { background: var(--ink); color: #fff; }
+.big-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+.big-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule-light);
+  color: var(--ink-soft);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.big-table td:first-child {
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.big-table tbody tr:last-child td { border-bottom: none; }
+.big-table tbody tr:nth-child(even) td { background: var(--bg-warm); }
+
+/* ── 判断口诀卡 ── */
+.rhyme-card {
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a4a 100%);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  margin: 20px 0;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  line-height: 2;
+  color: #cdd6f4;
+}
+.rhyme-card .rhyme-line { display: flex; gap: 12px; align-items: baseline; }
+.rhyme-card .rhyme-cond { color: #89dceb; }
+.rhyme-card .rhyme-arrow { color: #6c7086; }
+.rhyme-card .rhyme-ans { color: #a6e3a1; font-weight: 500; }
+
+/* ── 页脚 ── */
+footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule-light);
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  nav.sidebar { position: static; height: auto; }
+  main { padding: 32px 24px 60px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 侧边导航 ══ -->
+<nav class="sidebar">
+  <div class="logo">Claude Code<br>学习笔记II</div>
+  <a class="nav-module" href="#mod1">模块一 · 为什么会忘事</a>
+  <a href="#m1-stateless">无状态的本质</a>
+  <a href="#m1-two-levels">两个层面的遗忘</a>
+  <a class="nav-module" href="#mod2">模块二 · Session 内管理</a>
+  <a href="#m2-what">Context Window 是什么</a>
+  <a href="#m2-consume">什么在消耗它</a>
+  <a href="#m2-commands">三个管理命令</a>
+  <a href="#m2-tips">主动节省技巧</a>
+  <a class="nav-module" href="#mod3">模块三 · Auto Memory</a>
+  <a href="#m3-what">是什么</a>
+  <a href="#m3-where">存在哪里</a>
+  <a class="nav-module" href="#mod4">模块四 · Persistent Memory</a>
+  <a href="#m4-what">是什么</a>
+  <a href="#m4-types">四种记忆类型</a>
+  <a href="#m4-scope">三种 Scope</a>
+  <a class="nav-module" href="#mod5">模块五 · 存储结构</a>
+  <a href="#m5-arch">两层架构</a>
+  <a href="#m5-dream">Dream Agent</a>
+  <a class="nav-module" href="#mod6">模块六 · 综合辨析</a>
+  <a href="#m6-table">四种机制对照</a>
+  <a href="#m6-rhyme">判断口诀</a>
+</nav>
+
+<!-- ══ 正文 ══ -->
+<main>
+
+<div class="title-block">
+  <h1>Claude Code 学习笔记 II</h1>
+  <div class="meta">
+    <span>记忆系统：从 Session 内管理到跨 Session 持久化</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     模块一：为什么 Claude 会"忘事"
+══════════════════════════════════════ -->
+<section id="mod1">
+<div class="module-heading">
+  <span class="mod-tag">模块一</span>
+  <h2>为什么 Claude 会"忘事"——问题的根源</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>你有没有遇到过这种情况：和 Claude 聊了很久，它突然"忘记"了你之前说的事；或者关掉对话窗口，下次打开，它对你一无所知，像第一次见面。这不是 bug，而是 LLM 的本质决定的。</p>
+
+<!-- ── 1.1 无状态本质 ── -->
+<div id="m1-stateless">
+<h3>1.1　LLM 的无状态本质</h3>
+
+<p>语言模型（LLM）在设计上是<strong>无状态的</strong>——每一次 API 调用，都是一个全新的实例。模型本身不存储任何东西，它只能看到这次调用时传给它的内容。</p>
+
+<p>打个比方：Claude 就像一位极其聪明的顾问，但每次你打电话给他，他都刚从睡眠中醒来，完全不记得上次的对话。他能做的，是在这次通话里，把你告诉他的所有内容都记在心里，然后给出最好的回答。通话结束，一切清零。</p>
+
+<div class="callout amber">
+  <strong>核心认知：</strong>Claude 没有"记忆"这个器官。它能"记住"的，只有这次对话里你传给它的文字。记忆不是存储在某个数据库里，而是<strong>注入到 prompt 里的文本</strong>。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">记忆和存储有什么区别？</div>
+  <div class="qa-a">数据库的存储是持久化的——你存进去，下次还在。Claude 的"记忆"本质上是把信息写成文字，在每次对话开始时塞进 prompt 里，让模型"看到"它。一旦对话结束，这些文字就消失了。所以更准确的说法是：Claude 没有记忆，只有<strong>当前对话里的上下文</strong>。持久化记忆系统（后面几个模块会讲）做的事，就是把重要信息保存成文件，下次对话时再读进来——本质还是"注入文本"，只是有了跨 session 的机制。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.2 两个层面的遗忘 ── -->
+<div id="m1-two-levels">
+<h3>1.2　两个层面的遗忘</h3>
+
+<p>Claude 的"忘事"问题有两个完全不同的层面，解决方案也不同：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>层面</th><th>什么时候发生</th><th>具体表现</th><th>解决方向</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Session 内遗忘</strong></td>
+      <td>同一次对话中，Context Window 快满了</td>
+      <td>Claude 开始忽略你早些时候说的内容，重复已解决的问题，或者行为开始漂移</td>
+      <td>管理 Context Window（模块二）</td>
+    </tr>
+    <tr>
+      <td><strong>跨 Session 遗忘</strong></td>
+      <td>关闭对话，下次重新打开</td>
+      <td>Claude 对你一无所知：不记得你的偏好、不记得项目规则、不记得上次踩过的坑</td>
+      <td>持久化记忆系统（模块三～五）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>两个问题，两套解法。</strong>不要混淆：<code>/compact</code> 解决的是 session 内的空间问题；Auto Memory 和 Persistent Memory 解决的是跨 session 的遗忘问题。用错工具，问题还是在。
+</div>
+
+<h3>具体场景：这两种遗忘有多痛？</h3>
+
+<p><strong>Session 内遗忘的痛：</strong>你花了一个小时和 Claude 一起调试一个复杂的认证模块，它已经理解了整个架构。但对话进行到后半段，它突然开始提出你们早就否定过的方案，或者忘记了你说过"这个目录不能动"。你不得不重新解释，效率大打折扣。</p>
+
+<p><strong>跨 Session 遗忘的痛：</strong>你花了三次对话教会 Claude 你的项目规范——"用 pnpm 不用 npm"、"测试文件不要随便改"、"这个遗留模块有历史原因，别动它"。第四次打开，它又回到了默认状态，你得重新教一遍。</p>
+
+<div class="qa-card">
+  <div class="qa-q">既然 LLM 是无状态的，那 Claude Code 怎么在一次对话里"记住"我说的话？</div>
+  <div class="qa-a">靠的是 Context Window（上下文窗口）。每次模型被调用，Harness（驾驭层）会把<strong>完整的对话历史</strong>一起传给它。所以模型"记得"你说过的话，不是因为它有记忆，而是因为你说过的话一直在这次传给它的文本里。这也是为什么 Context Window 满了之后它会"忘事"——满了就装不下了，早期的内容被压缩或丢弃。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块二：Session 内的记忆管理——Context Window
+══════════════════════════════════════ -->
+<section id="mod2">
+<div class="module-heading">
+  <span class="mod-tag">模块二</span>
+  <h2>Session 内的记忆管理——Context Window</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>模块一说了，Claude 在一次对话里能"记住"你说的话，靠的是 Context Window。这一模块深入讲它是什么、什么东西在消耗它、以及怎么主动管理它。</p>
+
+<!-- ── 2.1 Context Window 是什么 ── -->
+<div id="m2-what">
+<h3>2.1　Context Window 是什么</h3>
+
+<p>Context Window（上下文窗口）是模型在一次对话中能"看到"的全部内容的上限，用 token 来衡量。你可以把它想象成一张<strong>固定大小的工作桌面</strong>——桌面上能摆的东西是有限的，放满了就得清掉一些才能继续工作。</p>
+
+<p>Claude Sonnet 4.6 的 Context Window 是 <strong>200k tokens</strong>（约 15 万个汉字，或者 50 万个英文单词）。听起来很大，但在实际工作中，它会比你想象的快得多地被填满。</p>
+
+<div class="callout amber">
+  <strong>工作桌面类比：</strong>桌面大小固定（200k tokens）。你放上去的每一样东西——对话记录、打开的文件、命令结果——都占桌面空间。桌面满了，你得把旧东西收起来才能继续工作。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.2 什么在消耗 Context ── -->
+<div id="m2-consume">
+<h3>2.2　什么东西在消耗 Context？</h3>
+
+<p>很多人以为只有"对话历史"占空间。实际上，Context Window 被多种内容共同消耗：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>消耗来源</th><th>说明</th><th>能否优化</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>对话历史</strong></td>
+      <td>你说的每句话、Claude 的每个回复，都完整保留在 context 里</td>
+      <td>可以（/compact 压缩）</td>
+    </tr>
+    <tr>
+      <td><strong>读取的文件内容</strong></td>
+      <td>Claude 每次读一个文件，文件内容就进入 context；读得越多，占得越多</td>
+      <td>可以（精确指定文件）</td>
+    </tr>
+    <tr>
+      <td><strong>命令执行结果</strong></td>
+      <td>运行 bash 命令的输出也会写回 context（write-back 机制）</td>
+      <td>有限（输出太长会截断）</td>
+    </tr>
+    <tr>
+      <td><strong>MCP 工具定义</strong></td>
+      <td>连接的 MCP 服务器，其所有工具定义<strong>全量加载</strong>到 context</td>
+      <td>可以（关闭不用的 MCP）</td>
+    </tr>
+    <tr>
+      <td><strong>Skills 目录</strong></td>
+      <td>只加载"索引"（名称+描述），不加载完整内容——比 MCP 轻量，但仍占空间</td>
+      <td>可以（关闭不用的 Skills）</td>
+    </tr>
+    <tr>
+      <td><strong>System prompt</strong></td>
+      <td>Claude Code 的系统提示词，固定成本，无法避免</td>
+      <td>否（固定成本）</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>实测数据：刚启动就用了 7%</h3>
+
+<p>下面是一次真实观察：我在一个文件夹目录初始启动了 Claude Code，<strong>什么都没做</strong>，立刻运行 <code>/context</code> 查看使用情况：</p>
+
+<img src="实操_Context使用情况截图.png" alt="实操_Context使用情况截图.png" width="680">
+
+<div class="callout red">
+  <strong>震撼的发现：</strong>只输入了一个命令，context 就用了 7%。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">Skills 说"不全量加载"，为什么还是占了 1.3%？</div>
+  <div class="qa-a">Skills 采用的是<strong>两级加载</strong>策略：启动时只加载"目录"（每个 Skill 的名称、描述、触发条件），不加载完整内容。只有当 Claude 决定使用某个 Skill 时，才会加载它的完整实现。所以 1.3% 是所有 Skill 的"目录索引"占的空间，不是完整内容。相比之下，MCP 服务器的工具定义是全量加载——10 个工具就有 10 份完整定义都在 context 里。Skills 比 MCP 轻量，但"目录"本身仍然占空间。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.3 三个管理命令 ── -->
+<div id="m2-commands">
+<h3>2.3　三个管理命令</h3>
+
+<p>Claude Code 提供三个命令来管理 Context Window：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>命令</th><th>作用</th><th>适合场景</th><th>效果</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/context</code></td>
+      <td>查看当前 context 使用情况</td>
+      <td>随时检查，尤其是感觉 Claude "变慢"或"忘事"时</td>
+      <td>可视化展示各类别占用比例</td>
+    </tr>
+    <tr>
+      <td><code>/compact</code></td>
+      <td>压缩历史，释放空间，<strong>保留核心信息</strong></td>
+      <td>想继续当前任务，但 context 快满了</td>
+      <td>把冗长的对话历史压缩成摘要，腾出空间</td>
+    </tr>
+    <tr>
+      <td><code>/clear</code></td>
+      <td>完全清空，<strong>不保留任何记忆</strong></td>
+      <td>当前任务已完成，想开始全新任务</td>
+      <td>重置所有 context，fresh start</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>/compact vs /clear 怎么选？</h3>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">?</div>
+    <div class="step-body">
+      <strong>还在做同一个任务，只是 context 快满了 → 用 /compact</strong>
+      <p>Claude 会把之前的对话历史压缩成摘要，保留关键决策和上下文，然后继续。就像把桌上的草稿纸叠整齐放到一边，桌面腾出来继续工作。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#2e8b57;">?</div>
+    <div class="step-body">
+      <strong>当前任务做完了，要开始新任务 → 用 /clear</strong>
+      <p>完全清空，不带任何包袱。但注意：/clear 之后，之前的所有上下文都消失了。如果有重要信息需要保留，要先写进 CLAUDE.md 或 Memory。</p>
+    </div>
+  </div>
+</div>
+
+<img src="见证了自动compacting.jpg" alt="见证了自动compacting.jpg" width="680">
+
+<div class="callout green">
+  <strong>Claude Code 也会自动 compact。</strong>当 context 接近上限时，系统会自动触发压缩（你在截图里看到的 "Autocompact buffer: 33k tokens" 就是为此预留的缓冲区）。但自动压缩的时机不一定是最优的——手动 <code>/compact</code> 让你掌握主动权。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 2.4 主动节省技巧 ── -->
+<div id="m2-tips">
+<h3>2.4　主动节省 Context 的技巧</h3>
+
+<ol>
+  <li>
+    <strong>精确的 Prompt</strong>
+    <ul>
+      <li>❌ 糟糕："帮我看看代码"——Claude 会盲目探索，读很多不必要的文件</li>
+      <li>✅ 好的："检查 auth.js 第 45–60 行的逻辑错误"——精确定位，只读必要内容</li>
+    </ul>
+  </li>
+  <li>
+    <strong>关闭不用的 MCP 服务器</strong>——MCP 工具定义全量加载，不用的服务器直接关掉，用 <code>/mcp</code> 管理
+  </li>
+  <li>
+    <strong>善用 Subagent</strong>——Subagent 有自己独立的 context window，只把结果返回给主 context，适合"探索型"任务（比如"这个 codebase 里哪里用到了认证"），不会污染主对话
+  </li>
+</ol>
+
+<div class="qa-card">
+  <div class="qa-q">/clear 之后，之前学到的东西就全没了吗？怎么办？</div>
+  <div class="qa-a">是的，/clear 会清空所有 context。解决方案是在 /clear 之前，把重要信息持久化：<strong>规则和规范</strong>写进 CLAUDE.md（每次启动自动读取）；<strong>用户偏好和项目经验</strong>让 Claude 写进 Memory（跨 session 保留）。这样 /clear 之后，下次启动 Claude 仍然能"记住"这些信息——因为它们不在 context 里，而在文件里，每次启动时重新注入。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块三：跨 Session 的记忆——Auto Memory
+══════════════════════════════════════ -->
+<section id="mod3">
+<div class="module-heading">
+  <span class="mod-tag">模块三</span>
+  <h2>跨 Session 的记忆——Auto Memory</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>模块二解决的是 session 内的空间问题。但关掉对话窗口，一切清零——这是另一个层面的遗忘。Auto Memory 是 Claude Code 给出的第一个答案。</p>
+
+<!-- ── 3.1 是什么 ── -->
+<div id="m3-what">
+<h3>3.1　Auto Memory 是什么</h3>
+
+<p>Auto Memory 是 Claude 在工作过程中<strong>自动记录的跨 session 笔记</strong>。你不需要手动操作——当 Claude 判断"这件事值得记住"时，它会主动把信息写入 Memory 文件，下次对话启动时自动读取。</p>
+
+<p>类比：就像一个助手在每次工作结束后，自己整理一份工作日志，记下"这个客户喜欢简洁的报告"、"那个项目的数据库密码规则很特殊"。下次见面时，他先翻一遍日志，再开始工作。</p>
+
+<div class="callout">
+  <strong>Auto Memory 记录什么？</strong>用户偏好（"我喜欢用 pnpm"）、反复出现的纠正（"不要改测试快照"）、项目经验（"这个遗留目录不能删，部署依赖它"）、外部资源指针（某个 dashboard 的 URL）。
+</div>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>维度</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>谁来写</strong></td>
+      <td>Claude 自动写，判断"这件事值得跨 session 记住"时主动写入</td>
+    </tr>
+    <tr>
+      <td><strong>写给谁用</strong></td>
+      <td>主 Agent（你和 Claude 的主对话），不是 Subagent</td>
+    </tr>
+    <tr>
+      <td><strong>什么时候写</strong></td>
+      <td>对话过程中，Claude 随时判断并写入；不是对话结束后统一整理</td>
+    </tr>
+    <tr>
+      <td><strong>什么时候读</strong></td>
+      <td>每次新 session 启动时，自动注入到 system prompt</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 3.2 存在哪里 ── -->
+<div id="m3-where">
+<h3>3.2　存在哪里，为什么不能团队共享</h3>
+
+<p>Auto Memory 存储在本机用户目录下：</p>
+
+<pre class="diagram"><span class="label">~/.claude/projects/&lt;project-path&gt;/memory/</span>
+<span class="comment">  ├── MEMORY.md          ← 索引文件（启动时自动注入）</span>
+<span class="comment">  ├── user-prefs.md      ← 用户偏好</span>
+<span class="comment">  ├── project-notes.md   ← 项目经验</span>
+<span class="comment">  └── ...                ← 其他 topic 文件</span></pre>
+
+<p>路径在<strong>用户目录（~/.claude/）</strong>下，不在项目仓库内。这意味着：</p>
+
+<ul>
+  <li>这是你的<strong>私人笔记</strong>，不会被 git 提交</li>
+  <li>换一台电脑，Memory 不会跟过去</li>
+  <li>团队其他成员看不到你的 Auto Memory</li>
+</ul>
+
+<div class="callout amber">
+  <strong>为什么设计成私人的？</strong>Auto Memory 记录的是你个人的偏好和经验积累，本来就是私人的。如果你想让团队共享某些知识，有两个选择：把规则写进 CLAUDE.md（可以 git 提交）；或者用 Persistent Memory 的 project scope（下一模块讲）。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">Auto Memory 和 CLAUDE.md 有什么区别？都是"让 Claude 记住东西"，为什么要两个？</div>
+  <div class="qa-a">核心区别在于<strong>谁来写、写什么</strong>：<br><br>
+  <strong>CLAUDE.md</strong> 是你手动写的静态规则——技术栈、编码规范、禁止操作。这些是你明确知道、想让 Claude 永远遵守的事情。<br><br>
+  <strong>Auto Memory</strong> 是 Claude 边工作边自己积累的动态经验——它在工作中发现了什么、你纠正了它什么、项目里有哪些不明显的约定。这些是你可能自己都没意识到值得记录的事情。<br><br>
+  两者互补：CLAUDE.md 是你给 Claude 的"入职手册"，Auto Memory 是 Claude 自己记的"工作日志"。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块四：跨 Session 的记忆——Persistent Memory
+══════════════════════════════════════ -->
+<section id="mod4">
+<div class="module-heading">
+  <span class="mod-tag">模块四</span>
+  <h2>跨 Session 的记忆——Persistent Memory（Subagent 专属）</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>Auto Memory 是主 Agent 自己积累的私人笔记。Persistent Memory 是另一套机制——专门为 Subagent 设计，可以团队共享，且记录什么、怎么记，都有明确的结构规范。</p>
+
+<!-- ── 4.1 是什么 ── -->
+<div id="m4-what">
+<h3>4.1　Persistent Memory 是什么</h3>
+
+<p>Persistent Memory 是通过 Subagent 配置文件（frontmatter）中的 <code>memory</code> 字段开启的持久化目录。当你给一个 Subagent 加上 <code>memory: project</code>，它就拥有了一个专属的跨 session 记忆空间，可以在每次工作后写入、下次工作前读取。</p>
+
+<pre class="diagram"><span class="comment">--- Subagent 配置示例 ---</span>
+<span class="label">name:</span> code-reviewer
+<span class="label">description:</span> 审查代码质量，检查 bug、安全问题和最佳实践
+<span class="label">tools:</span> Read, Glob, Grep
+<span class="label">model:</span> haiku
+<span class="label">memory:</span> <span class="note">project</span>   <span class="comment">← 开启 Persistent Memory，project scope</span>
+<span class="comment">---</span>
+
+你是一个代码审查专家。审查时：
+1. 先查阅 memory，了解项目历史问题和已知风险
+2. 针对本次 diff 进行审查
+3. 审查完成后，更新 memory，记录新发现</pre>
+
+<div class="callout">
+  <strong>和 Auto Memory 最大的区别：</strong>Auto Memory 是 Claude 自己判断"值得记"就写；Persistent Memory 是 Subagent 按照 system prompt 里的指令，有规则地写——写什么、什么时候写，都由你定义。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.2 四种记忆类型 ── -->
+<div id="m4-types">
+<h3>4.2　四种记忆类型</h3>
+
+<p>Persistent Memory 把值得记录的信息分成四类，每一类有明确的适用场景：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>类型</th><th>记什么</th><th>例子</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>user</strong></td>
+      <td>用户的稳定偏好</td>
+      <td>"我喜欢用 pnpm"、"回答要简洁"、"不要大规模重构"</td>
+    </tr>
+    <tr>
+      <td><strong>feedback</strong></td>
+      <td>用户反复纠正的行为，需要强制执行</td>
+      <td>"不要改测试快照，除非我明确要求"、"修改生成文件前先问我"</td>
+    </tr>
+    <tr>
+      <td><strong>project</strong></td>
+      <td>代码库里看不出来的项目事实</td>
+      <td>"这个遗留目录不能删，部署依赖它"、"这个服务是因为合规要求存在的，不是技术选择"</td>
+    </tr>
+    <tr>
+      <td><strong>reference</strong></td>
+      <td>外部资源的指针</td>
+      <td>incident board 的 URL、监控 dashboard 地址、规范文档位置</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout amber">
+  <strong>判断标准：</strong>只存"跨 session 仍然有价值、且无法从当前代码库轻易推导出来"的信息。能从代码里读出来的，不要存；临时状态（当前分支、进行中的 PR 号），不要存；密钥和凭证，绝对不要存。
+</div>
+
+<h3>什么不该存进 Memory？</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>不该存的内容</th><th>原因</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>代码结构、函数签名、文件布局</td>
+      <td>代码是真相的来源，Memory 里的副本只会过时</td>
+    </tr>
+    <tr>
+      <td>当前任务状态（"正在修 auth bug"）</td>
+      <td>属于 task/plan，任务完成后这条记忆就没有意义了</td>
+    </tr>
+    <tr>
+      <td>临时信息（当前分支名、PR 号）</td>
+      <td>很快就会过时，存了反而产生误导</td>
+    </tr>
+    <tr>
+      <td>密钥、密码、凭证</td>
+      <td>安全风险，绝对禁止</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="qa-card">
+  <div class="qa-q">Memory 里的信息是绝对真理吗？如果 Memory 记错了怎么办？</div>
+  <div class="qa-a">Memory 不是绝对真理，只是方向参考。正确的使用姿势是：<strong>Memory 给方向，当前观察给真相</strong>。如果 Memory 里说"auth 模块用 JWT"，但你现在读代码发现已经换成 session cookie 了，以当前代码为准，并更新 Memory。Memory 会过时，当它和现实冲突时，永远信任你现在看到的。</div>
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 4.3 三种 Scope ── -->
+<div id="m4-scope">
+<h3>4.3　三种 Scope——哪种可以团队共享？</h3>
+
+<p>Persistent Memory 有三种存储范围（Scope），决定了记忆存在哪里、能不能被团队共享：</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>Scope</th><th>存储路径</th><th>可 git 共享</th><th>适用场景</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>user</strong></td>
+      <td><code>~/.claude/agent-memory/&lt;name&gt;/</code></td>
+      <td>❌ 不可以</td>
+      <td>跨项目的个人通用知识</td>
+    </tr>
+    <tr>
+      <td><strong>project</strong></td>
+      <td><code>.claude/agent-memory/&lt;name&gt;/</code></td>
+      <td>✅ 可以</td>
+      <td><strong>推荐默认</strong>——团队共享，随代码一起提交</td>
+    </tr>
+    <tr>
+      <td><strong>local</strong></td>
+      <td><code>.claude/agent-memory-local/&lt;name&gt;/</code></td>
+      <td>❌ 不可以</td>
+      <td>不想提交的私有知识（加入 .gitignore）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout green">
+  <strong>project scope 的团队飞轮效应：</strong>当 Subagent 的 Memory 和代码一起被 git 提交，团队中任何成员启动这个 Subagent，都能继承所有历史洞见。新成员不需要重新踩坑，直接继承团队积累的经验——这是 Persistent Memory 在团队场景中最大的价值。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">Auto Memory 和 Persistent Memory 到底有什么本质区别？</div>
+  <div class="qa-a">三个维度的区别：<br><br>
+  <strong>谁来写：</strong>Auto Memory 是主 Agent 自己判断写；Persistent Memory 是 Subagent 按 system prompt 指令写。<br><br>
+  <strong>写给谁用：</strong>Auto Memory 给主 Agent（你的主对话）用；Persistent Memory 给特定 Subagent 用，是它的专属工作记忆。<br><br>
+  <strong>能否共享：</strong>Auto Memory 存在用户目录，永远私人；Persistent Memory 的 project scope 存在项目目录，可以 git 提交团队共享。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块五：记忆的存储结构——MEMORY.md 两层架构
+══════════════════════════════════════ -->
+<section id="mod5">
+<div class="module-heading">
+  <span class="mod-tag">模块五</span>
+  <h2>记忆的存储结构——MEMORY.md 两层架构</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>不管是 Auto Memory 还是 Persistent Memory，底层的存储结构是一样的：<strong>MEMORY.md 索引 + topic 详细文件</strong>。理解这个结构，才能理解 Claude 是怎么读 Memory 的，以及为什么有 200 行限制。</p>
+
+<!-- ── 5.1 两层架构 ── -->
+<div id="m5-arch">
+<h3>5.1　文件结构：索引 + 详细文件</h3>
+
+<pre class="diagram"><span class="label">memory/</span>
+<span class="comment">  ├── MEMORY.md          ← 索引文件（≤200行，启动时自动注入 system prompt）</span>
+<span class="comment">  ├── auth-patterns.md   ← topic 文件（按需读取，不限大小）</span>
+<span class="comment">  ├── db-notes.md</span>
+<span class="comment">  ├── perf-issues.md</span>
+<span class="comment">  └── ...</span>
+
+<span class="comment">--- MEMORY.md 内容示例 ---</span>
+<span class="note">[auth]</span>  JWT 必须用 UTC+0，本地时区导致验证失败 <span class="arrow">→</span> auth-patterns.md
+<span class="note">[db]</span>   连接池上限 20，超出会 hang <span class="arrow">→</span> db-notes.md
+<span class="note">[api]</span>  /v2/users 接口限流 500/min <span class="arrow">→</span> rate-limit.md</pre>
+
+<p><strong>MEMORY.md 是索引，不是内容本身。</strong>每一行是一条简短摘要（≤150字符）加上指向详细文件的路径。它的作用是让 Agent 在启动时快速扫描"有哪些知识"，而不是把所有细节都塞进 system prompt。</p>
+
+<h3>Agent 怎么读 Memory？</h3>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Session 启动：MEMORY.md 前 200 行自动注入 system prompt</strong>
+      <p>Agent 扫描索引，获得所有知识点的"标题预览"——知道有哪些 topic，每个 topic 大概是什么。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>工作中遇到相关问题：Agent 主动判断是否需要更多细节</strong>
+      <p>Agent 看到索引里某条和当前任务相关，主动用 Read 工具读取对应的 topic 文件，获取完整上下文。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>无关的 topic 文件不会被读取</strong>
+      <p>这是关键设计：不相关的知识不进入 context，节省空间。Agent 自己决定读什么，不是全部加载。</p>
+    </div>
+  </div>
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">Memory 里的引用和 Hook 有什么区别？感觉都是"触发某个动作"。</div>
+  <div class="qa-a">本质完全不同：<br><br>
+  <strong>MEMORY.md 引用</strong>是 Agent <em>主动</em>读文件——Agent 自己判断"我需要更多上下文"，然后调用 Read 工具去读 topic 文件。这是 Agent 的自主决策，是工具调用。<br><br>
+  <strong>Hook</strong> 是系统事件<em>被动</em>触发——在固定的生命周期节点（session 启动、session 结束、工具调用前后），Claude Code 框架自动执行预设的 shell 命令，不需要 Agent 决策。<br><br>
+  一句话：Memory 引用是 Agent 主动去拿信息；Hook 是框架在特定时刻强制执行命令。</div>
+</div>
+
+<h3>200 行限制的设计意图</h3>
+
+<p>MEMORY.md 前 200 行会在每次启动时注入 system prompt，直接占用 context window。200 行约等于 3000～5000 tokens，是在"有用的背景知识"和"不拖累 context"之间刻意取得的平衡。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>200 行限制带来的三个影响</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>倒逼知识密度</strong></td>
+      <td>每行必须高度精炼——"[auth] JWT 用 UTC+0 → auth.md" 比写一段话更有价值</td>
+    </tr>
+    <tr>
+      <td><strong>超出部分启动时不可见</strong></td>
+      <td>第 201 行以后启动时看不见（但 Agent 可以主动读文件获取）</td>
+    </tr>
+    <tr>
+      <td><strong>需要定期整理</strong></td>
+      <td>随着 Memory 积累，需要合并、去重、清理过时条目——这是 Dream Agent 的工作</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 5.2 Dream Agent ── -->
+<div id="m5-dream">
+<h3>5.2　Dream Agent——Memory 的守门人</h3>
+
+<p>随着使用时间增长，Memory 会越来越多：同一个问题被多个 session 记录了好几次、有些条目已经过时、MEMORY.md 快超过 200 行了。Dream Agent 就是专门处理这些问题的后台整理程序。</p>
+
+<h3>Dream Agent 做什么</h3>
+
+<div class="steps-flow">
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">1</div>
+    <div class="step-body">
+      <strong>Orient：扫描 MEMORY.md 索引，了解当前结构</strong>
+      <p>先看整体，知道现在有哪些 topic、大概的分布。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">2</div>
+    <div class="step-body">
+      <strong>Gather：读取各个 topic 文件的完整内容</strong>
+      <p>深入细节，找出重叠、矛盾、过时的条目。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">3</div>
+    <div class="step-body">
+      <strong>Consolidate：合并重叠，解决矛盾，删除过时</strong>
+      <p>同一个问题被记了三次 → 合并为一条；两条内容冲突 → 保留正确的，删除过时的。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">4</div>
+    <div class="step-body">
+      <strong>Prune：把 MEMORY.md 维持在 200 行以内</strong>
+      <p>详细内容移入 topic 文件，MEMORY.md 只保留简短索引行。</p>
+    </div>
+  </div>
+</div>
+
+<h3>触发条件</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>触发方式</th><th>条件</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>自动触发</strong></td>
+      <td>距上次整理超过 <strong>24 小时</strong>，且积累了至少 <strong>5 个新 session</strong>（两个条件同时满足）</td>
+    </tr>
+    <tr>
+      <td><strong>手动触发</strong></td>
+      <td>输入 <code>dream</code> 命令立即执行</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout green">
+  <strong>Dream Agent 在后台运行，不打断正在进行的工作。</strong>它是 Memory 系统的"自我维护"机制——你不需要手动整理 Memory，Dream Agent 会定期帮你保持整洁。
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块六：四种"记忆机制"综合辨析
+══════════════════════════════════════ -->
+<section id="mod6">
+<div class="module-heading">
+  <span class="mod-tag">模块六</span>
+  <h2>四种"记忆机制"综合辨析</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>学完前五个模块，你接触了四种和"记忆"有关的机制：Context Window、Auto Memory、Persistent Memory、CLAUDE.md。它们听起来都是"让 Claude 记住东西"，但用途、生命周期、存储位置完全不同。这一模块用一张大表统一辨析，再给你一个判断口诀。</p>
+
+<!-- ── 6.1 大对照表 ── -->
+<div id="m6-table">
+<h3>6.1　四种机制一张表</h3>
+
+<table class="big-table">
+  <thead>
+    <tr>
+      <th>维度</th>
+      <th>Context Window</th>
+      <th>Auto Memory</th>
+      <th>Persistent Memory</th>
+      <th>CLAUDE.md</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>生命周期</td>
+      <td>Session 内</td>
+      <td>跨 Session</td>
+      <td>跨 Session</td>
+      <td>永久</td>
+    </tr>
+    <tr>
+      <td>谁来写</td>
+      <td>自动积累（所有内容）</td>
+      <td>Claude 自动判断写</td>
+      <td>Subagent 按指令写</td>
+      <td>你手动写</td>
+    </tr>
+    <tr>
+      <td>写什么</td>
+      <td>当前对话的一切内容</td>
+      <td>动态经验积累</td>
+      <td>动态经验积累</td>
+      <td>静态规则与规范</td>
+    </tr>
+    <tr>
+      <td>存在哪里</td>
+      <td>内存（对话结束即消失）</td>
+      <td><code>~/.claude/</code> 本机用户目录</td>
+      <td>项目目录或用户目录（取决于 scope）</td>
+      <td>项目根目录文件</td>
+    </tr>
+    <tr>
+      <td>能团队共享吗</td>
+      <td>❌</td>
+      <td>❌</td>
+      <td>✅（project scope）</td>
+      <td>✅</td>
+    </tr>
+    <tr>
+      <td>适合存什么</td>
+      <td>当前任务所需的一切信息</td>
+      <td>用户偏好、项目经验</td>
+      <td>Subagent 的专属工作记忆</td>
+      <td>技术栈、规范、禁止操作</td>
+    </tr>
+    <tr>
+      <td>对应的"忘事"问题</td>
+      <td>Session 内遗忘</td>
+      <td>跨 Session 遗忘</td>
+      <td>跨 Session 遗忘</td>
+      <td>跨 Session 遗忘</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 6.2 判断口诀 ── -->
+<div id="m6-rhyme">
+<h3>6.2　判断口诀——遇到信息，往哪里放？</h3>
+
+<div class="rhyme-card">
+  <div class="rhyme-line">
+    <span class="rhyme-cond">只在这个任务用</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">不用存，在 Context 里就行</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">下次 session 还要用，是规则</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">CLAUDE.md</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">下次 session 还要用，是经验/偏好</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Auto Memory（Claude 自动写）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">是 Subagent 的专属经验，要团队共享</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Persistent Memory（project scope）</span>
+  </div>
+</div>
+
+<h3>用具体场景练习一下</h3>
+
+<table class="compare-table">
+  <thead>
+    <tr><th>场景</th><th>应该放哪里</th><th>理由</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>"这个项目用 TypeScript，不用 JavaScript"</td>
+      <td><strong>CLAUDE.md</strong></td>
+      <td>是明确的技术规范，你手动写，永久有效</td>
+    </tr>
+    <tr>
+      <td>你第三次纠正 Claude "不要用 default export"</td>
+      <td><strong>Auto Memory</strong>（feedback 类型）</td>
+      <td>是反复纠正，Claude 应该自动记住，下次不再犯</td>
+    </tr>
+    <tr>
+      <td>"legacy/ 目录不能删，生产部署依赖它"</td>
+      <td><strong>Auto Memory</strong>（project 类型）</td>
+      <td>是代码里看不出来的项目事实，值得跨 session 记住</td>
+    </tr>
+    <tr>
+      <td>Code Reviewer Subagent 发现"N+1 查询已出现 3 次"</td>
+      <td><strong>Persistent Memory</strong>（project scope）</td>
+      <td>是 Subagent 的专属工作记忆，需要团队共享</td>
+    </tr>
+    <tr>
+      <td>"当前正在修复 auth 模块的 token 刷新 bug"</td>
+      <td><strong>哪里都不用存</strong></td>
+      <td>是临时任务状态，任务完成后毫无意义</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>最后一个核心认知：</strong>这四种机制不是竞争关系，而是互补的分层体系。Context Window 管当下，CLAUDE.md 管规则，Auto Memory 管个人经验，Persistent Memory 管团队共享的 Subagent 记忆。用对工具，Claude 才能真正从"每次见面都是陌生人"变成"越用越懂你的搭档"。
+</div>
+</div>
+
+</section>
+
+<footer>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">学习资料</div>
+      <div>1. Anthropic Courses — Claude Code 101</div>
+      <div>2. Learn Claude Code — s09 Memory System</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">笔记创作</div>
+      <div>Nina &amp; Claude</div>
+      <div>2026-05-03</div>
+    </div>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script>
+const links = document.querySelectorAll('.sidebar a');
+const sections = document.querySelectorAll('section[id], div[id]');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

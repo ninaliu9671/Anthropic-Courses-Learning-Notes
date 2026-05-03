@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 学习笔记IV — 整合与实践</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── 设计令牌 ── */
+:root {
+  --ink:        #1a1a2e;
+  --ink-soft:   #3d3d5c;
+  --ink-muted:  #6b6b8a;
+  --accent:     #c17d4a;
+  --accent-dim: #d4a574;
+  --rule:       #c8bfb0;
+  --rule-light: #e8e2da;
+  --bg:         #faf8f5;
+  --bg-warm:    #f4f0ea;
+  --bg-card:    #ffffff;
+  --blue-tint:  #eef4fb;
+  --blue-line:  #3b76c4;
+  --green-tint: #edf7f0;
+  --green-line: #2e8b57;
+  --amber-tint: #fdf6ec;
+  --amber-line: #c17d4a;
+  --red-tint:   #fdf0f0;
+  --red-line:   #c04040;
+
+  --f-serif: 'Noto Serif SC', 'Georgia', serif;
+  --f-sans:  'Noto Sans SC', 'system-ui', sans-serif;
+  --f-mono:  'JetBrains Mono', 'Consolas', monospace;
+
+  --r: 6px;
+  --shadow: 0 1px 4px rgba(26,26,46,.08);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Base ── */
+body {
+  font-family: var(--f-serif);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+/* ── Layout ── */
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+nav.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--ink);
+  color: #d0cce8;
+  padding: 36px 0 60px;
+  font-family: var(--f-sans);
+  font-size: 13px;
+}
+.sidebar .logo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  margin-bottom: 16px;
+}
+.sidebar a {
+  display: block;
+  padding: 5px 20px;
+  color: #a0a0c0;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  line-height: 1.5;
+}
+.sidebar a:hover,
+.sidebar a.active {
+  color: #fff;
+  border-left-color: var(--accent);
+}
+.sidebar .nav-module {
+  font-weight: 600;
+  color: #c8c4e0;
+  padding: 14px 20px 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  text-decoration: none;
+  transition: color .15s;
+}
+a.nav-module:hover { color: #fff; }
+
+/* ── Main ── */
+main {
+  padding: 56px 72px 80px 64px;
+  max-width: 820px;
+}
+
+/* ── 文章标题页 ── */
+.title-block {
+  padding-bottom: 36px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 48px;
+}
+.title-block h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+.title-block .meta {
+  font-family: var(--f-sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 20px;
+}
+.title-block .meta span::before { content: '— '; }
+
+/* ── 模块标题 ── */
+.module-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 52px 0 6px;
+}
+.module-heading .mod-tag {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.module-heading h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: none;
+  padding: 0;
+}
+.module-rule {
+  height: 2px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  margin-bottom: 24px;
+}
+
+/* ── 小节标题 ── */
+h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 28px 0 8px;
+}
+
+/* ── 正文段落 ── */
+p { margin: 0 0 12px; color: var(--ink-soft); }
+p:last-child { margin-bottom: 0; }
+
+/* ── 列表 ── */
+ul, ol {
+  padding-left: 1.4em;
+  margin: 8px 0 12px;
+  color: var(--ink-soft);
+}
+li { margin: 4px 0; }
+li strong { color: var(--ink); }
+
+/* ── 分割线 ── */
+hr.section-break {
+  border: none;
+  border-top: 1px solid var(--rule-light);
+  margin: 32px 0;
+}
+
+/* ── 强调块 ── */
+.callout {
+  background: var(--blue-tint);
+  border-left: 3px solid var(--blue-line);
+  padding: 14px 18px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 18px 0;
+  font-size: 15px;
+}
+.callout strong { color: var(--ink); }
+.callout.amber {
+  background: var(--amber-tint);
+  border-left-color: var(--amber-line);
+}
+.callout.green {
+  background: var(--green-tint);
+  border-left-color: var(--green-line);
+}
+.callout.red {
+  background: var(--red-tint);
+  border-left-color: var(--red-line);
+}
+
+/* ── Q&A 知识卡片 ── */
+.qa-card {
+  background: var(--bg-warm);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  margin: 18px 0;
+  overflow: hidden;
+  font-size: 15px;
+}
+.qa-card .qa-q {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--rule-light);
+  padding: 10px 16px;
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.qa-card .qa-q::before {
+  content: 'Q';
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.qa-card .qa-a {
+  padding: 10px 16px;
+  color: var(--ink-soft);
+}
+.qa-card .qa-a::before {
+  content: 'A　';
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-right: 8px;
+}
+
+/* ── 图示/代码框 ── */
+.diagram {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 18px 22px;
+  border-radius: var(--r);
+  margin: 16px 0;
+  overflow-x: auto;
+  border: 1px solid #2a2a3e;
+  white-space: pre;
+}
+.diagram .comment { color: #6c7086; }
+.diagram .label   { color: var(--accent-dim); font-weight: 500; }
+.diagram .arrow   { color: #89dceb; }
+.diagram .note    { color: #a6e3a1; }
+.diagram .hl      { color: #f9e2af; }
+
+code {
+  font-family: var(--f-mono);
+  font-size: .875em;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── 对比表格 ── */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 14px;
+  font-family: var(--f-sans);
+  box-shadow: var(--shadow);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.compare-table thead tr {
+  background: var(--ink);
+  color: #fff;
+}
+.compare-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+.compare-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-light);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+.compare-table td strong { color: var(--ink); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody tr:nth-child(even) td { background: var(--bg-warm); }
+
+/* ── 步骤流程 ── */
+.steps-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 16px 0;
+}
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--rule-light);
+}
+.step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--f-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+}
+.step-body {
+  padding-bottom: 20px;
+  flex: 1;
+}
+.step-body strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+.step-body p { font-size: 14px; margin: 0; }
+
+/* ── 速查卡 ── */
+.quick-ref {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+.quick-ref-item {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+}
+.quick-ref-item .term {
+  font-family: var(--f-sans);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.quick-ref-item .def { color: var(--ink-soft); line-height: 1.6; }
+
+/* ── 判断口诀卡 ── */
+.rhyme-card {
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a4a 100%);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  margin: 20px 0;
+  font-family: var(--f-mono);
+  font-size: 13.5px;
+  line-height: 2;
+  color: #cdd6f4;
+}
+.rhyme-card .rhyme-line { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.rhyme-card .rhyme-cond { color: #89dceb; }
+.rhyme-card .rhyme-arrow { color: #6c7086; flex-shrink: 0; }
+.rhyme-card .rhyme-ans { color: #a6e3a1; font-weight: 500; }
+
+/* ── 辨析对比卡 ── */
+.vs-block {
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin: 20px 0;
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  font-family: var(--f-sans);
+}
+.vs-header {
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 18px;
+}
+.vs-header .vs-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+.vs-header .vs-sep {
+  font-size: 11px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--accent-dim);
+  font-weight: 600;
+  padding: 2px 8px;
+  border: 1px solid var(--accent-dim);
+  border-radius: 3px;
+}
+.vs-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr;
+  border-bottom: 1px solid var(--rule-light);
+}
+.vs-row:last-child { border-bottom: none; }
+.vs-row .vs-tag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.vs-row.same .vs-tag { background: var(--green-tint); color: var(--green-line); }
+.vs-row.diff .vs-tag { background: var(--amber-tint); color: var(--amber-line); }
+.vs-row .vs-cell {
+  padding: 10px 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  border-left: 1px solid var(--rule-light);
+}
+.vs-row .vs-cell strong { color: var(--ink); display: block; margin-bottom: 2px; font-size: 13px; }
+.vs-row .vs-cell:first-of-type { background: rgba(59,118,196,.03); }
+.vs-row .vs-cell:last-of-type  { background: rgba(193,125,74,.03); }
+
+/* ── 实践阶段块 ── */
+.phase-block {
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin: 24px 0;
+  box-shadow: var(--shadow);
+}
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: var(--bg-warm);
+  border-bottom: 1px solid var(--rule);
+}
+.phase-badge {
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.phase-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.phase-body {
+  padding: 16px 18px;
+  background: var(--bg-card);
+}
+.phase-body p { font-size: 14px; margin-bottom: 10px; }
+.phase-body ul { font-size: 14px; }
+.phase-signal {
+  display: inline-block;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--green-tint);
+  color: var(--green-line);
+  border: 1px solid var(--green-line);
+  border-radius: 3px;
+  padding: 2px 10px;
+  margin-top: 8px;
+}
+
+/* ── 工具标签 ── */
+.tool-tag {
+  display: inline-block;
+  font-family: var(--f-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 7px;
+  margin: 2px 2px;
+  vertical-align: middle;
+}
+.tool-tag.blue { background: #3b76c4; }
+.tool-tag.green { background: #2e8b57; }
+.tool-tag.amber { background: #c17d4a; }
+.tool-tag.purple { background: #7b6fa8; }
+
+/* ── 页脚 ── */
+footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule-light);
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* ── 响应式 ── */
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  nav.sidebar { position: static; height: auto; }
+  main { padding: 32px 24px 60px; }
+  .quick-ref { grid-template-columns: 1fr; }
+  .vs-row { grid-template-columns: 40px 1fr; }
+  .vs-row .vs-cell:last-of-type { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ 侧边导航 ══ -->
+<nav class="sidebar">
+  <div class="logo">Claude Code<br>学习笔记IV</div>
+  <a class="nav-module" href="#mod1">模块一 · 全景地图</a>
+  <a href="#m1-layers">三层结构</a>
+  <a href="#m1-roles">工具角色分类</a>
+  <a class="nav-module" href="#mod2">模块二 · 综合辨析</a>
+  <a href="#vs1">CLAUDE.md vs Memory</a>
+  <a href="#vs2">Skills vs CLAUDE.md</a>
+  <a href="#vs3">Skills vs MCP</a>
+  <a href="#vs4">Subagent vs 新对话</a>
+  <a href="#vs5">Hooks vs 提示</a>
+  <a href="#vs6">/compact vs Memory</a>
+  <a class="nav-module" href="#mod3">模块三 · 决策框架</a>
+  <a href="#m3-lookup">场景速查</a>
+  <a class="nav-module" href="#mod4">模块四 · 大实践</a>
+  <a href="#m4-bg">项目背景</a>
+  <a href="#m4-explore">阶段一 Explore</a>
+  <a href="#m4-plan">阶段二 Plan</a>
+  <a href="#m4-code">阶段三 Code</a>
+  <a href="#m4-memory">阶段四 记忆管理</a>
+  <a href="#m4-trouble">阶段五 排障指南</a>
+  <a class="nav-module" href="#mod5">模块五 · 持续迭代</a>
+  <a href="#m5-mindset">活的系统</a>
+</nav>
+
+<!-- ══ 正文 ══ -->
+<main>
+
+<div class="title-block">
+  <h1>Claude Code 学习笔记 IV</h1>
+  <div class="meta">
+    <span>把 I/II/III 的所有知识整合成一张地图，然后用一个真实项目把它们全部用上</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     模块一：全景地图
+══════════════════════════════════════ -->
+<section id="mod1">
+<div class="module-heading">
+  <span class="mod-tag">模块一</span>
+  <h2>全景地图 — 所有概念之间的关系</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>学完 I/II/III 之后，你接触了十几个概念。单独看每一个都能理解，但放在一起就容易乱。这一模块不重复解释概念，只给一个新视角：<strong>它们之间的关系是什么</strong>，以及各自在整个系统里扮演什么角色。</p>
+
+<!-- ── 1.1 三层结构 ── -->
+<div id="m1-layers">
+<h3>1.1　Claude Code 的三层结构</h3>
+
+<p>把所有工具摊开来看，会发现它们天然分成三层，每层解决一类不同的问题：</p>
+
+<div class="diagram"><span class="label">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="label">│  扩展层  │</span>  Skills · MCP · Subagent · Hooks
+<span class="comment">│          │</span>  <span class="note">扩展能力边界——让 Claude 能做更多、更准确、更自动化</span>
+<span class="label">├─────────────────────────────────────────────────────────────┤</span>
+<span class="label">│  记忆层  │</span>  Context Window · CLAUDE.md · Auto Memory · Persistent Memory
+<span class="comment">│          │</span>  <span class="note">解决遗忘问题——让 Claude 在需要时知道该知道的事</span>
+<span class="label">├─────────────────────────────────────────────────────────────┤</span>
+<span class="label">│  执行层  │</span>  Claude 本体（LLM，无状态）
+<span class="comment">│          │</span>  <span class="note">理解任务、制定计划、决定下一步——但本身什么都不记得</span>
+<span class="label">└─────────────────────────────────────────────────────────────┘</span></div>
+
+<p>三层之间的关系是：<strong>记忆层解决了执行层的先天缺陷（无状态），扩展层在记忆层之上进一步放大 Claude 的能力上限</strong>。没有记忆层，Claude 每次都从零开始；没有扩展层，Claude 只能做到本地代码库的边界为止。</p>
+
+<div class="callout amber">
+  <strong>为什么先有"记忆层"才有"扩展层"：</strong>Skills、MCP、Subagent 这些扩展工具，都依赖 Claude 有稳定的"背景知识"才能正确使用。如果 Claude 连项目规范都记不住，扩展再多工具也是徒劳。所以正确的搭建顺序是：先把记忆层（CLAUDE.md + Memory）建好，再往上叠扩展层。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 1.2 工具角色分类 ── -->
+<div id="m1-roles">
+<h3>1.2　一张关系图：每个工具在做什么</h3>
+
+<p>换一个维度来看：这些工具不是并列的，它们扮演的<strong>角色</strong>完全不同——有的是在给 Claude 喂信息，有的是在让 Claude 采取行动，有的是在控制任务的边界。</p>
+
+<table class="compare-table">
+  <thead>
+    <tr>
+      <th>角色</th>
+      <th>工具</th>
+      <th>具体做什么</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>给 Claude<br>输入信息</strong></td>
+      <td>
+        CLAUDE.md<br>
+        Auto Memory<br>
+        Persistent Memory<br>
+        Skills<br>
+        MCP（工具定义）<br>
+        Context Window
+      </td>
+      <td style="font-size:13px;line-height:1.8;">
+        启动时把项目规则注入 system prompt<br>
+        启动时把历史经验注入 system prompt<br>
+        Subagent 启动时注入专属工作记忆<br>
+        按需注入"某件事怎么做"的知识<br>
+        启动时把可用外部工具的描述全量加载<br>
+        持续积累当前对话的所有内容
+      </td>
+    </tr>
+    <tr>
+      <td><strong>让 Claude<br>执行动作</strong></td>
+      <td>
+        Tools（内置）<br>
+        MCP（工具调用）<br>
+        Subagent 调用
+      </td>
+      <td style="font-size:13px;line-height:1.8;">
+        读/写文件、运行 bash、搜索网络<br>
+        通过 MCP 协议调用外部服务（Linear、数据库…）<br>
+        启动独立 Claude 实例，委派子任务
+      </td>
+    </tr>
+    <tr>
+      <td><strong>控制任务<br>边界与行为</strong></td>
+      <td>
+        Subagent（隔离）<br>
+        Hooks（拦截/追加）<br>
+        /compact · /clear
+      </td>
+      <td style="font-size:13px;line-height:1.8;">
+        独立 context window，探索过程不污染主对话<br>
+        PreToolUse 拦截危险动作，PostToolUse 追加必做操作<br>
+        主动管理 context 的大小与生命周期
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>一个工具可以同时扮演多个角色。</strong>MCP 既是"输入信息"（工具定义加载进 context），也是"执行动作"（实际发起 API 调用）。Subagent 既是"执行动作"（完成一个独立任务），也是"控制边界"（把探索过程隔离在独立 context 里）。分角色理解，是为了知道<em>它在这一刻</em>在做什么，而不是给工具贴固定标签。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">记忆层里的工具那么多，它们在"给 Claude 喂信息"这件事上有什么区别？</div>
+  <div class="qa-a">核心区别在于<strong>谁来写、什么时候喂、喂给谁</strong>：<br><br>
+  <strong>CLAUDE.md</strong> — 你写，每次启动就喂，给所有对话用<br>
+  <strong>Auto Memory</strong> — Claude 自动写，每次启动就喂，给主 Agent 用<br>
+  <strong>Persistent Memory</strong> — Subagent 按指令写，Subagent 启动时喂，给特定 Subagent 用<br>
+  <strong>Skills</strong> — 你写，按需喂（只在 Claude 判断需要时），给当次任务用<br>
+  <strong>Context Window</strong> — 自动积累，整个 session 都在，给当次 session 用<br><br>
+  五条线都是"把文字喂进模型的视野"，但时机、来源、目标各不相同。这就是为什么需要五种机制，而不是一种。</div>
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块二：综合辨析
+══════════════════════════════════════ -->
+<section id="mod2">
+<div class="module-heading">
+  <span class="mod-tag">模块二</span>
+  <h2>综合辨析 — 最容易混淆的六对概念</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>概念单独看都能理解，放在一起就容易混。这里不重复解释每个概念，只聚焦一件事：<strong>它们在哪里看起来相似，核心区别究竟在哪，什么情况下选哪个</strong>。</p>
+
+<!-- ── 对比1 ── -->
+<div id="vs1">
+<h3>对比 1　CLAUDE.md  vs  Memory</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">CLAUDE.md</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">Memory（Auto Memory）</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都是跨 session 持久化，都在每次新对话启动时自动注入 system prompt，都在解决"Claude 对你一无所知"的问题</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>你手动写</strong><br>你知道要写什么，主动维护</div>
+    <div class="vs-cell"><strong>Claude 自动写</strong><br>Claude 边工作边判断"这件事值得记"，主动写入</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>静态规则</strong><br>技术栈、规范、命令——不会自动更新</div>
+    <div class="vs-cell"><strong>动态经验</strong><br>用户偏好、踩过的坑、项目隐性约定——随使用深入而积累</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>除非你改，否则永远有效</strong></div>
+    <div class="vs-cell"><strong>可能过时</strong>，需要 Dream Agent 定期整理，与现实对齐</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>你明确知道"Claude 必须遵守这条规则"→ <strong>CLAUDE.md</strong>；你想让 Claude 自己在工作中积累"这个项目的潜规则"→ 让 <strong>Memory</strong> 自动处理。两者不是竞争，是互补——一个是你写的入职手册，一个是 Claude 自己记的工作日志。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 对比2 ── -->
+<div id="vs2">
+<h3>对比 2　Skills  vs  CLAUDE.md</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">Skills</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">CLAUDE.md</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都是你写给 Claude 的知识，都存在项目的文件里，都影响 Claude 执行任务的方式</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>按需加载，用完即弃</strong><br>启动时只加载目录，用时才加载完整内容，不一直占 context</div>
+    <div class="vs-cell"><strong>永远在 context</strong><br>启动时全部注入，不管这次用不用得上，每次都占空间</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>执行方法</strong>（怎么做某件具体的事）<br>小红书文案怎么写、代码审查怎么做</div>
+    <div class="vs-cell"><strong>任务流程与规范</strong>（做什么、遵循什么）<br>用 pnpm、不改测试快照、先探索再写代码</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>可跨项目复用</strong><br>一个"写文档"的 Skill，任何项目都能用</div>
+    <div class="vs-cell"><strong>项目特定</strong><br>通常和代码库一起提交，是这个项目的专属配置</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>每次对话都要遵守的规范 → <strong>CLAUDE.md</strong>；只有特定任务类型才需要的详细方法，且不想每次都占 context → <strong>Skills</strong>。一个粗略的判断标准：如果你发现某条 CLAUDE.md 规则只在某类任务时才有用，把它拆出来做成 Skill。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 对比3 ── -->
+<div id="vs3">
+<h3>对比 3　Skills  vs  MCP</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">Skills</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">MCP</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都是"给 Claude 装工具"，都扩展了 Claude 能做的事情范围，都在 context 里有某种"入口"（Skills 目录索引 / MCP 工具定义）</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>内部知识注入</strong><br>Markdown 文件，告诉 Claude 怎么做某件事，离线可用</div>
+    <div class="vs-cell"><strong>外部服务连接</strong><br>网络或本地进程，让 Claude 能访问外部数据，需要连接</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>扩展"知道怎么做"的范围</strong><br>给 Claude 一套方法论、执行流程</div>
+    <div class="vs-cell"><strong>扩展"能读到什么"的范围</strong><br>让 Claude 读取 Linear ticket、查数据库、查最新文档</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>按需加载，轻量</strong><br>用时才加载完整内容（~2000 tokens）</div>
+    <div class="vs-cell"><strong>全量加载，较重</strong><br>启动时所有工具定义全部进入 context</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>你需要教 Claude 一套可复用的方法论 → <strong>Skills</strong>；Claude 需要读取不在本地的数据或调用外部 API → <strong>MCP</strong>。两者经常一起用：MCP 负责拿到外部数据，Skills 负责告诉 Claude 拿到数据之后该怎么处理。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 对比4 ── -->
+<div id="vs4">
+<h3>对比 4　Subagent  vs  新开对话</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">Subagent</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">手动新开对话</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都是一个全新的 Claude 实例，都有干净的、独立的 context window，都不带当前对话的历史负担</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>主 Agent 自动传入背景</strong><br>任务描述、项目信息由主 Agent 打包好传进去，一启动就知道背景</div>
+    <div class="vs-cell"><strong>你手动解释背景</strong><br>粘代码、说规范、交代上下文——全靠你重新说一遍</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>结果自动返回</strong><br>完成后 summary 直接回到主 Agent，工作流不中断</div>
+    <div class="vs-cell"><strong>结果需要你中转</strong><br>手动复制结果，粘贴回主对话，你成了那个"桥梁"</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>临时任务，做完即弃</strong><br>Context 用完丢弃，除非配置了 Persistent Memory</div>
+    <div class="vs-cell"><strong>新的持续工作</strong><br>读取 Auto Memory，进入正常会话生命周期</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>有一个明确的子任务，需要独立执行后把结果汇报回来（Code Review、并行探索）→ <strong>Subagent</strong>；要开始一项和当前任务无关的全新工作 → <strong>新开对话</strong>。判断标准：工作流是否需要连续？需要就用 Subagent，不需要就新开。
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 对比5 ── -->
+<div id="vs5">
+<h3>对比 5　Hooks  vs  CLAUDE.md 提示</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">Hooks</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">CLAUDE.md 里的提示</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都能让某些事情"在 Claude 工作时发生"，都可以用来设置"做完 X 之后做 Y"这类行为规范</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>100% 确定执行</strong><br>事件触发，系统层面强制执行，不经过 Claude 判断</div>
+    <div class="vs-cell"><strong>概率性执行</strong><br>Claude 读到规则，大部分时候照做，但会忘、会跳过、会看情况</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>机械动作，不需要理解内容</strong><br>运行 prettier、记日志、发通知——只看动作类型和文件路径</div>
+    <div class="vs-cell"><strong>需要 Claude 智能判断</strong><br>"适当时候给出风格建议"、"如有必要则重构"——需要理解上下文</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>shell 命令，写在 settings.json</strong><br>执行者是操作系统，不是 Claude</div>
+    <div class="vs-cell"><strong>自然语言指令，写在 CLAUDE.md</strong><br>执行者是 Claude，通过语言理解来落实</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>这件事必须每次都发生，不允许例外，且是纯机械动作 → <strong>Hooks</strong>；这件事需要 Claude 理解情况后灵活判断是否要做、怎么做 → <strong>CLAUDE.md</strong>。发现自己在 CLAUDE.md 里写"每次 X 之后必须 Y"，就该问自己：为什么不用 Hook？
+</div>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 对比6 ── -->
+<div id="vs6">
+<h3>对比 6　/compact  vs  Memory</h3>
+
+<div class="vs-block">
+  <div class="vs-header">
+    <span class="vs-name">/compact（上下文压缩）</span>
+    <span class="vs-sep">vs</span>
+    <span class="vs-name">Memory（持久化记忆）</span>
+  </div>
+  <div class="vs-row same">
+    <div class="vs-tag">同</div>
+    <div class="vs-cell" style="grid-column:2/-1;background:var(--green-tint);">都和"让 Claude 记住更多东西"有关，都会在压缩/整理过程中保留"重要信息"，都是解决遗忘问题的手段</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>Session 内压缩</strong><br>释放 context 空间，在当前对话内继续工作</div>
+    <div class="vs-cell"><strong>跨 Session 持久化</strong><br>关掉窗口重新打开，信息仍然存在</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>自动或手动触发</strong><br>context 满时自动压缩，或用 /compact 主动执行</div>
+    <div class="vs-cell"><strong>主动设计</strong><br>Claude 自己判断写（Auto Memory），或 Subagent 按指令写</div>
+  </div>
+  <div class="vs-row diff">
+    <div class="vs-tag">异</div>
+    <div class="vs-cell"><strong>压缩的是"对话历史"</strong><br>把几千 token 的对话摘要成几百 token 的摘要</div>
+    <div class="vs-cell"><strong>提炼的是"值得记住的经验"</strong><br>以结构化文件形式保存，供未来的 session 使用</div>
+  </div>
+</div>
+
+<div class="callout amber" style="font-size:14px;">
+  <strong>怎么选：</strong>Context 快满了，当前任务还没完成，不想丢失工作状态 → <strong>/compact</strong>；想让这次对话中发现的经验或偏好，在未来的对话里也能用到 → <strong>Memory</strong>（让 Claude 自动写，或者你明确提示它记下来）。一个常见误解：以为 /compact 能解决跨 session 的遗忘——不能，它只管当前这个 session 内的空间问题。
+</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块三：决策框架
+══════════════════════════════════════ -->
+<section id="mod3">
+<div class="module-heading">
+  <span class="mod-tag">模块三</span>
+  <h2>决策框架 — 遇到问题选哪个工具</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>有了全景地图和辨析清单，接下来的问题是：真实场景里怎么快速做决定？这里不从工具出发，而是从<strong>你的需求出发</strong>——描述你想解决什么问题，直接指向答案。</p>
+
+<div id="m3-lookup">
+
+<div class="rhyme-card">
+  <div style="color:#6c7086;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #2a2a4a;">记忆 · 知识管理</div>
+
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让 Claude 记住项目规则，每次启动都知道</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">CLAUDE.md</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让 Claude 记住它踩过的坑和我的偏好，不用我操心</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Auto Memory（它自己会记）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让某个 Subagent 跨 session 记住项目历史，团队共享</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Persistent Memory（project scope）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想给 Claude 一套可复用的执行方法（不想每次都塞进 context）</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Skills</span>
+  </div>
+
+  <div style="color:#6c7086;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 6px;padding-top:10px;border-top:1px solid #2a2a4a;">能力扩展</div>
+
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让 Claude 读取 Linear / 数据库 / 外部服务的数据</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">MCP</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让 Claude 查询最新的库文档、不在本地的任何数据</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">MCP（Context7 等文档服务）</span>
+  </div>
+
+  <div style="color:#6c7086;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 6px;padding-top:10px;border-top:1px solid #2a2a4a;">任务隔离 · 执行控制</div>
+
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让某个子任务在独立空间执行，不污染主对话的 context</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Subagent</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想让代码写完后自动格式化，100% 不漏，不依赖 Claude 记得</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Hooks（PostToolUse）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想阻止 Claude 执行某类危险命令，从源头拦截</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Hooks（PreToolUse，exit code 1）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">想在 Claude 完成任务后收到通知，去做下一件事</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">Hooks（Stop）</span>
+  </div>
+
+  <div style="color:#6c7086;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 6px;padding-top:10px;border-top:1px solid #2a2a4a;">Context 管理</div>
+
+  <div class="rhyme-line">
+    <span class="rhyme-cond">Context 快满了，当前任务还没完成，不想丢工作状态</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">/compact</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">当前任务已完成，要开始全新的不相关任务</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">/clear（先确认重要规则已在 CLAUDE.md 里）</span>
+  </div>
+  <div class="rhyme-line">
+    <span class="rhyme-cond">MCP 工具占了太多 context，但用不到那些服务</span>
+    <span class="rhyme-arrow">→</span>
+    <span class="rhyme-ans">用 /mcp 关闭不用的 MCP 服务器</span>
+  </div>
+</div>
+
+</div>
+
+<div class="callout green">
+  <strong>工具可以叠加使用，不是非此即彼。</strong>一个真实场景往往需要多个工具配合：<br>
+  <span style="font-family:var(--f-mono);font-size:13px;line-height:2;display:block;margin-top:6px;">
+  CLAUDE.md（项目规范）<br>
+  + Skills（小红书文案写法）<br>
+  + Subagent（Code Review 独立视角）<br>
+  + Hooks（每次写完文件自动格式化）<br>
+  + /compact（长任务中途释放空间）<br>
+  = 一套完整的工作流
+  </span>
+  单独讨论"用哪个"只是入门，真正的掌握是知道<strong>在这个具体 workflow 里，每个工具做它最擅长的那部分</strong>。
+</div>
+
+<div class="qa-card">
+  <div class="qa-q">很多场景好像都能用 CLAUDE.md 解决，什么情况下值得多学其他工具？</div>
+  <div class="qa-a">CLAUDE.md 确实是"万能胶"——把什么都往里塞，大多数时候 Claude 会照做。但这有两个代价：<br><br>
+  <strong>1. Context 代价：</strong>塞进去的所有内容每次都占 context 空间，10条规则就是10条规则的常驻成本，不管这次用不用得上。Skills 的按需加载就是解决这个问题的。<br><br>
+  <strong>2. 可靠性代价：</strong>"请每次编辑文件后格式化"写进 CLAUDE.md，Claude 大部分时候会做，但不是 100%。如果你发现某件事"反正必须发生，不能漏"，那就该改用 Hooks。<br><br>
+  CLAUDE.md 是好的起点，其他工具是当 CLAUDE.md 开始显露出不够用的时机时的升级路径。</div>
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块四：大实践
+══════════════════════════════════════ -->
+<section id="mod4">
+<div class="module-heading">
+  <span class="mod-tag">模块四</span>
+  <h2>大实践 — 搭建学习笔记 Workflow</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>概念到位了，现在来真正用一遍。这一模块把前三篇的所有工具串进一个真实项目——你现在正在做的学习笔记 Workflow。它不是假设的例子，而是一套你可以立刻搭起来的配置。</p>
+
+<!-- ── 背景说明 ── -->
+<div id="m4-bg">
+<h3>项目背景</h3>
+
+<div class="diagram"><span class="label">Workflow 目标</span>
+输入：每节课的学习资料（Markdown + 图片）+ HTML 笔记
+  <span class="arrow">↓</span>
+输出一：章节总结 HTML（深度学习笔记，按知识脉络整理）
+输出二：小红书内容包（8–10 张配图 prompt + 配套文案）
+
+<span class="comment">// 为什么这个 workflow 是好的练习场？</span>
+<span class="note">// 它同时涉及：规范要求（CLAUDE.md）+ 可复用方法（Skills）</span>
+<span class="note">// + 必做操作（Hooks）+ 子任务隔离（Subagent）</span>
+<span class="note">// 所有工具都有用武之地，不是为了用而用</span></div>
+
+<p>我们把整个搭建过程分成五个阶段：<strong>Explore → Plan → Code → 使用中的记忆管理 → Troubleshooting</strong>。这个顺序本身就是笔记 I 教的工作流——用来搭建 workflow 的工具，和 workflow 里用到的工具，是同一套。</p>
+</div>
+
+<hr class="section-break">
+
+<!-- ── 阶段一：Explore ── -->
+<div id="m4-explore">
+
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:#5b8fa8;">阶段一</span>
+    <h3>Explore — 探索需求，做工具选型</h3>
+  </div>
+  <div class="phase-body">
+    <p>在 Plan Mode 下，用自然语言把你的 workflow 目标告诉 Claude，让它帮你分析需要哪些工具。不要直接跳到配置——先把需求说清楚，让 Claude 替你想清楚。</p>
+
+    <p><strong>你说的话（示例）：</strong></p>
+    <div class="diagram"><span class="comment">// 给 Claude 的 prompt</span>
+我在做一个学习笔记 workflow：
+- 输入：每节课的 Markdown 资料 + HTML 学习笔记
+- 输出：章节总结 HTML + 小红书内容包（文案 + 配图 prompt）
+
+帮我分析：
+1. 这个 workflow 需要哪些 Claude Code 工具？
+2. 哪些适合写进 CLAUDE.md？哪些适合做成 Skills？
+3. 有没有适合用 Hooks 的操作？需要 MCP 吗？</div>
+
+    <p><strong>Claude 的分析结果（你期望看到）：</strong></p>
+
+    <table class="compare-table" style="font-size:13px;">
+      <thead>
+        <tr><th>需求</th><th>推荐工具</th><th>理由</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>项目目标、输出格式规范、文件命名规则</td>
+          <td><span class="tool-tag">CLAUDE.md</span></td>
+          <td>每次都要遵守，放这里省得每次说</td>
+        </tr>
+        <tr>
+          <td>小红书文案风格、配图 prompt 格式</td>
+          <td><span class="tool-tag amber">Skills</span></td>
+          <td>只在生成小红书内容时才需要，不必常驻 context</td>
+        </tr>
+        <tr>
+          <td>HTML 笔记写完后自动格式化</td>
+          <td><span class="tool-tag green">Hooks</span></td>
+          <td>机械动作，必须每次执行，不能漏</td>
+        </tr>
+        <tr>
+          <td>HTML 内容完成后做质量审查</td>
+          <td><span class="tool-tag purple">Subagent</span></td>
+          <td>需要 fresh eyes，隔离审查过程不污染主对话</td>
+        </tr>
+        <tr>
+          <td>读取外部服务数据</td>
+          <td>不需要 MCP</td>
+          <td>所有输入都在本地文件里，无需连接外部服务</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout" style="font-size:14px;">
+      <strong>Explore 阶段的核心价值：</strong>在还没写一行配置之前，就把工具选型想清楚。后面的所有工作都在这个框架下进行，而不是走一步看一步。
+    </div>
+
+    <span class="phase-signal">✓ 完成信号：你知道要用哪些工具，以及每个工具负责什么</span>
+  </div>
+</div>
+
+</div>
+
+<hr class="section-break">
+
+<!-- ── 阶段二：Plan ── -->
+<div id="m4-plan">
+
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:#7b6fa8;">阶段二</span>
+    <h3>Plan — 设计配置方案，零代价纠偏</h3>
+  </div>
+  <div class="phase-body">
+    <p>仍然在 Plan Mode。把 Explore 阶段的选型决策变成具体的配置设计——不是"要用 Skills"，而是"Skills 里放什么内容、文件怎么组织"。这是纠偏代价最低的时机，现在改方向不需要删文件。</p>
+
+    <h3 style="margin-top:16px;">CLAUDE.md 设计</h3>
+    <p>这个 workflow 的 CLAUDE.md 只放"每次都要遵守的事"：</p>
+
+    <div class="diagram"><span class="comment"># CLAUDE.md（学习笔记 Workflow 项目）</span>
+
+<span class="label">## 项目目标</span>
+将学习资料整合成 HTML 学习笔记 + 小红书内容包。
+
+<span class="label">## 输入文件位置</span>
+- 学习资料：消化/{日期}/
+- 已有笔记：输出/{日期}/
+
+<span class="label">## 输出规范</span>
+- HTML 笔记：输出/{日期}/claude-code-notes-{N}.html
+- 小红书文案：输出/{日期}/{N}-小红书文案.md
+
+<span class="label">## 内容原则</span>
+- 按知识脉络组织，不按课程顺序
+- 不重复解释概念，只给新视角
+- 同一 CSS 风格（参见 notes-I.html 的设计令牌）
+
+<span class="label">## 禁止操作</span>
+- 不修改已有的笔记文件
+- 不自行决定输出目录，总是用今天的日期
+
+@style-guide.md   <span class="comment"># CSS 变量和卡片类型说明</span></div>
+
+    <h3 style="margin-top:20px;">Skills 设计</h3>
+    <p>两个 Skills，各司其职：</p>
+
+    <div class="diagram">skills/
+├── xiaohongshu/
+│   └── SKILL.md    <span class="comment"># 小红书文案风格 + 写作流程</span>
+└── image-prompt/
+    └── SKILL.md    <span class="comment"># 配图 prompt 格式规范</span>
+
+<span class="comment">--- xiaohongshu/SKILL.md 的结构 ---</span>
+<span class="label">---</span>
+<span class="label">name: xiaohongshu</span>
+<span class="label">description: 生成小红书文案，包含心路历程写法和引发共鸣的风格</span>
+<span class="label">---</span>
+
+<span class="note">## 文案风格原则</span>
+- 真实学习过程，不是固定模板
+- 问题驱动：遇到问题 → 钻研 → 发现解决方案
+- 不要 AI 味，不要营销号
+
+<span class="note">## 参考结构（灵活使用，不要照搬）</span>
+开头：最近在学 Claude Code，今天学到 xxx
+核心概念：2–3 个关键点
+心路历程：想到我遇到过 xxx 问题...
+结尾：完整笔记在评论区 👇</div>
+
+    <h3 style="margin-top:20px;">Hooks 配置</h3>
+    <p>一个 Hook 解决一个"每次都必须做但经常会漏"的操作：</p>
+
+    <div class="diagram"><span class="comment">// settings.json 里的 Hooks 配置</span>
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            <span class="label">"command": "prettier --write \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"</span>,
+            "description": "HTML 文件写完后自动格式化"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            <span class="label">"command": "osascript -e 'display notification \"任务完成\" with title \"Claude Code\""</span>,
+            "description": "任务完成后发桌面通知"
+          }
+        ]
+      }
+    ]
+  }
+}</div>
+
+    <h3 style="margin-top:20px;">Subagent 配置设计</h3>
+    <p>HTML 笔记写完后，用一个只读的 Reviewer Subagent 检查内容质量——它看不到写作过程，只评价最终结果：</p>
+
+    <div class="diagram"><span class="comment">--- .claude/agents/note-reviewer.md ---</span>
+<span class="label">name: note-reviewer</span>
+<span class="label">description: 审查 HTML 学习笔记的内容质量</span>
+<span class="label">tools: Read, Glob</span>        <span class="comment"># 只读权限，不能修改</span>
+<span class="label">model: haiku</span>              <span class="comment"># 审查任务用轻量模型</span>
+<span class="label">memory: project</span>          <span class="comment"># project scope，跨 session 积累审查经验</span>
+<span class="comment">---</span>
+
+你是一个学习笔记质量审查员。审查要点：
+1. 先查阅 memory，了解本项目的历史问题
+2. 检查：结构是否清晰、有没有重复解释前三篇已有概念、
+         CSS 风格是否一致、模块四篇幅是否占 40%+
+3. 审查后更新 memory，记录新发现的问题类型</div>
+
+    <div class="callout green" style="font-size:14px;">
+      <strong>注意 MCP 的缺席：</strong>这个 workflow 不需要 MCP，因为所有输入都在本地文件里。如果未来需要从 Notion 读取课程大纲、或者把笔记发布到某个平台，那时候再加 MCP。工具是按需引入的，不是因为"能用"就提前加。
+    </div>
+
+    <span class="phase-signal">✓ 完成信号：每个工具放什么、文件怎么组织，方案已经确定，你审阅过并同意</span>
+  </div>
+</div>
+
+</div>
+
+<hr class="section-break">
+
+<!-- ── 阶段三：Code ── -->
+<div id="m4-code">
+
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:#8fa85b;">阶段三</span>
+    <h3>Code — 把方案变成真实配置</h3>
+  </div>
+  <div class="phase-body">
+    <p>方案批准后，切换到 Default 模式，按顺序把每一份配置文件建起来。顺序很重要：<strong>先建 CLAUDE.md，让 Claude 知道项目背景；再建 Skills，建 Hooks，最后建 Subagent</strong>。</p>
+
+    <div class="steps-flow" style="margin-top:16px;">
+      <div class="step-item">
+        <div class="step-num" style="background:#5b8fa8;">1</div>
+        <div class="step-body">
+          <strong>用 /init 生成 CLAUDE.md 基础，再手动补充</strong>
+          <p>在项目目录下运行 <code>/init</code>，Claude 会扫描代码库自动生成一份基础 CLAUDE.md（技术栈、文件结构）。然后手动追加你在 Plan 阶段设计的内容规范和禁止操作。<br>
+          <em>技巧：不要从头手写，/init 帮你把"已经能看出来的信息"写完，你只补"看不出来的隐性规则"。</em></p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num" style="background:#7b6fa8;">2</div>
+        <div class="step-body">
+          <strong>创建 Skills 文件</strong>
+          <p>建立 <code>skills/xiaohongshu/SKILL.md</code> 和 <code>skills/image-prompt/SKILL.md</code>，填入 Plan 阶段设计好的内容。写完后让 Claude 验证：<code>你能调用 xiaohongshu 这个 Skill 吗？</code>——它应该能从目录里找到并描述这个 Skill。</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num" style="background:#c17d4a;">3</div>
+        <div class="step-body">
+          <strong>配置 Hooks</strong>
+          <p>在 <code>.claude/settings.json</code> 里写入 PostToolUse 和 Stop 两个 Hook。配置完成后做个测试：让 Claude 写一个小 HTML 文件，确认保存后自动触发了格式化（不要信"应该生效了"，要真的看一眼文件）。</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num" style="background:#a85b5b;">4</div>
+        <div class="step-body">
+          <strong>创建 Subagent 配置</strong>
+          <p>建立 <code>.claude/agents/note-reviewer.md</code>，填入 Plan 阶段设计的配置。让 Claude 调用一次：<code>用 note-reviewer 审查最近这篇笔记</code>，验证它能正常启动并返回审查意见。</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num" style="background:#2e8b57;">5</div>
+        <div class="step-body">
+          <strong>端到端跑一次</strong>
+          <p>用一份真实的学习资料，完整跑一遍 workflow：<br>
+          读入资料 → 生成 HTML 笔记 → Hooks 自动格式化 → Subagent 审查 → 生成小红书内容（调用 xiaohongshu Skill）。<br>
+          检查：每个工具都用到了吗？输出格式符合规范吗？有没有哪步需要手动介入？</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout amber" style="font-size:14px;margin-top:4px;">
+      <strong>搭建顺序的逻辑：</strong>先 CLAUDE.md → 后其他工具。因为 Skills、Subagent 的 prompt 里可能引用项目规范，如果 CLAUDE.md 还没建好，Claude 在后续步骤里就没有稳定的"地基"，会产生不一致。
+    </div>
+
+    <span class="phase-signal">✓ 完成信号：端到端跑通一次，每个工具都实际参与了工作</span>
+  </div>
+</div>
+
+</div>
+
+<hr class="section-break">
+
+<!-- ── 阶段四：记忆管理 ── -->
+<div id="m4-memory">
+
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:#3b76c4;">阶段四</span>
+    <h3>使用中的记忆管理 — 让系统越用越懂你</h3>
+  </div>
+  <div class="phase-body">
+    <p>Workflow 建好了，但它不会在第一天就达到最佳状态。这一阶段描述的是使用过程中会发生的事——不需要你主动干预，系统在悄悄进化。</p>
+
+    <table class="compare-table" style="font-size:13px;margin-top:12px;">
+      <thead>
+        <tr><th>什么时候</th><th>发生了什么</th><th>你需要做什么</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>第一次跑完</strong></td>
+          <td>Auto Memory 开始积累你的偏好，比如你纠正了输出格式，Claude 记下来了</td>
+          <td>什么都不用做，观察 Memory 文件是否有新内容</td>
+        </tr>
+        <tr>
+          <td><strong>长任务进行中</strong></td>
+          <td>Context Window 使用率升高，Claude 开始读入多份资料文件</td>
+          <td>运行 <code>/context</code> 查看使用率，超过 60% 考虑 <code>/compact</code></td>
+        </tr>
+        <tr>
+          <td><strong>Reviewer 跑了几次后</strong></td>
+          <td>Persistent Memory 里积累了"这个项目常见的笔记问题"，Reviewer 审查越来越准</td>
+          <td>偶尔打开 <code>.claude/agent-memory/note-reviewer/</code> 看看它记了什么</td>
+        </tr>
+        <tr>
+          <td><strong>发现某条 CLAUDE.md 规则总被忽略</strong></td>
+          <td>Claude 理解规则但执行不一致——这条规则可能更适合 Hook</td>
+          <td>把这条规则从 CLAUDE.md 移到 Hooks 配置里</td>
+        </tr>
+        <tr>
+          <td><strong>跑了几十次 session 后</strong></td>
+          <td>Dream Agent 自动整理 Memory，合并重复条目，维持在 200 行以内</td>
+          <td>什么都不用做，Dream Agent 在后台处理</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:20px;">Context 使用的经验规律</h3>
+
+    <div class="diagram"><span class="comment">// 学习笔记 workflow 的典型 context 分布</span>
+
+<span class="label">启动时（什么都没做）：</span>
+  System prompt         ~5%
+  CLAUDE.md             ~2%
+  Skills 目录索引       ~1%
+  ────────────────────────────
+  已用                  ~8%，剩余 ~92%
+
+<span class="label">读入一份课程 Markdown + 三篇已有笔记：</span>
+  + 文件内容            ~15-20%
+  ────────────────────────────
+  已用                  ~25-30%
+
+<span class="label">生成 HTML 笔记过程中（多轮工具调用）：</span>
+  + 对话历史            ~10-20%
+  ────────────────────────────
+  <span class="note">已用 ~40-50%（这时候可以考虑 /compact）</span>
+
+<span class="label">如果还要继续生成小红书内容：</span>
+  + xiaohongshu Skill   ~1%（按需加载）
+  + 继续对话            ~10%+
+  ────────────────────────────
+  <span class="arrow">→ 超过 70% 时强烈建议 /compact 一次</span></div>
+
+    <span class="phase-signal">✓ 完成信号：用了几次之后，Claude 的行为越来越符合你的期望，纠正次数越来越少</span>
+  </div>
+</div>
+
+</div>
+
+<hr class="section-break">
+
+<!-- ── 阶段五：Troubleshooting ── -->
+<div id="m4-trouble">
+
+<div class="phase-block">
+  <div class="phase-header">
+    <span class="phase-badge" style="background:#1a1a2e;">阶段五</span>
+    <h3>遇到问题怎么处理 — Troubleshooting Guide</h3>
+  </div>
+  <div class="phase-body">
+    <p>真实使用中一定会遇到问题。大多数问题都有固定的"症状 → 诊断 → 修复"路径：</p>
+
+    <table class="compare-table" style="font-size:13px;margin-top:12px;">
+      <thead>
+        <tr><th>症状</th><th>根本原因</th><th>修复方法</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Claude 开始忘事，重复已解决的问题，或者行为偏离规范</td>
+          <td>Context Window 被压缩，早期内容丢失</td>
+          <td>运行 <code>/context</code> 确认，用 <code>/compact</code> 压缩；若是跨 session 遗忘，检查 CLAUDE.md 和 Memory 是否完整</td>
+        </tr>
+        <tr>
+          <td>Claude 反复犯同一个错误（比如总用错文件命名格式）</td>
+          <td>规则在 CLAUDE.md 里写了，但 Claude 没有一致执行</td>
+          <td>把这条规则写得更具体、更靠前；如果是机械操作，改用 Hook 强制执行</td>
+        </tr>
+        <tr>
+          <td>某个格式化或通知操作时不时漏掉</td>
+          <td>把"必做操作"写进了 CLAUDE.md，依赖 Claude 自觉</td>
+          <td>把这个操作移到 Hooks（PostToolUse 或 Stop），用确定性代替概率性</td>
+        </tr>
+        <tr>
+          <td>Reviewer Subagent 不知道项目历史，每次从头来</td>
+          <td>Subagent 配置里没有开启 Persistent Memory</td>
+          <td>在 <code>note-reviewer.md</code> 的 frontmatter 里加 <code>memory: project</code></td>
+        </tr>
+        <tr>
+          <td>Context 刚启动就用了很多，还没开始工作就很紧张</td>
+          <td>MCP 工具定义全量加载，或 Skills 目录太大</td>
+          <td>用 <code>/mcp</code> 关掉这次不用的 MCP 服务器；清理掉不再使用的 Skills</td>
+        </tr>
+        <tr>
+          <td>Hooks 配置了但没有生效</td>
+          <td>settings.json 路径不对，或 matcher 写法有误</td>
+          <td>用 <code>/hooks</code> 命令查看当前已加载的 hooks；检查 matcher 是否匹配了正确的工具名</td>
+        </tr>
+        <tr>
+          <td>xiaohongshu Skill 生成的文案有 AI 味</td>
+          <td>Skill 里的风格描述太抽象，没有负面示例</td>
+          <td>在 Skill 里补充"❌ 不要这样写"的具体示例，以及你觉得好的真实文案作为参考</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout green" style="font-size:14px;margin-top:16px;">
+      <strong>排查问题的通用思路：</strong>遇到 Claude 行为不符合预期时，先问两个问题——<strong>①它是真的不知道（信息没传进去），还是知道但没做（执行问题）？</strong> 如果是前者，检查 CLAUDE.md / Memory / Skills 是否到位；如果是后者，考虑是否需要把这条规则从"自然语言提示"升级为"Hook 强制执行"。
+    </div>
+
+    <span class="phase-signal">✓ 完成信号：遇到问题能快速定位原因，知道该动哪个配置文件</span>
+  </div>
+</div>
+
+</div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     模块五：持续迭代心态
+══════════════════════════════════════ -->
+<section id="mod5">
+<div class="module-heading">
+  <span class="mod-tag">模块五</span>
+  <h2>写给未来的自己 — 持续迭代的心态</h2>
+</div>
+<div class="module-rule"></div>
+
+<p>到这里，你已经有了全景地图、辨析清单、决策框架，也跑通了一个真实的 workflow。但有一件事比所有配置都重要：<strong>这套系统是活的，不是一次搭完就万事大吉的</strong>。</p>
+
+<div id="m5-mindset">
+
+<h3>每个工具都有自己的"生长方式"</h3>
+
+<div class="steps-flow" style="margin-top:8px;">
+  <div class="step-item">
+    <div class="step-num" style="background:#3b76c4;">📄</div>
+    <div class="step-body">
+      <strong>CLAUDE.md 不是一次写完的</strong>
+      <p>第一天可能只有三行。随着你发现 Claude 反复犯同一个错误、做了你不想要的假设，你才知道应该补什么规则。好的 CLAUDE.md 是从实践里"长出来的"，不是凭空设计出来的。它的演化轨迹就是你和这个工具磨合的历史。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#7b6fa8;">🧠</div>
+    <div class="step-body">
+      <strong>Memory 不是你维护的</strong>
+      <p>Auto Memory 是 Claude 替你维护的。你不需要时刻想着"这件事要不要记下来"——Claude 在工作中会自己判断。你需要做的只是偶尔检查 Memory 文件，确认它记的方向是对的，发现过时的条目时手动清理。这是一种新的分工：你负责把关，它负责积累。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#c04040;">🪝</div>
+    <div class="step-body">
+      <strong>Hooks 不是一开始就配齐的</strong>
+      <p>第一次搭 workflow 的时候，你不一定知道哪些操作"总是漏"。Hooks 是在你发现了问题之后才加的——当你第三次因为忘了格式化而烦恼，才是真正应该写 Hook 的时机。提前把所有可能的 Hook 都配上，反而会制造噪音。</p>
+    </div>
+  </div>
+  <div class="step-item">
+    <div class="step-num" style="background:#2e8b57;">🔧</div>
+    <div class="step-body">
+      <strong>Skills 和 MCP 是按需叠加的</strong>
+      <p>今天的 workflow 只需要本地文件，所以不需要 MCP。如果有一天你想从 Notion 里读取课程大纲、或者把生成的内容直接发布出去，那时候再加 MCP。Skills 也一样——先用最简单的方式完成任务，当某类任务开始频繁出现且方法稳定下来，再把它封装成 Skill。</p>
+    </div>
+  </div>
+</div>
+
+<hr class="section-break">
+
+<h3>一张系统成熟度示意图</h3>
+
+<div class="diagram"><span class="comment">// 典型的 workflow 演化路径</span>
+
+<span class="label">第 1 天</span>   CLAUDE.md（3行）
+             <span class="arrow">↓ 发现 Claude 用了错误的文件命名</span>
+<span class="label">第 3 天</span>   CLAUDE.md（补充文件命名规范）
+             <span class="arrow">↓ 发现格式化总是漏</span>
+<span class="label">第 7 天</span>   + Hooks（PostToolUse 自动格式化）
+             <span class="arrow">↓ 小红书内容任务开始频繁出现</span>
+<span class="label">第 14 天</span>  + Skills（xiaohongshu / image-prompt）
+             <span class="arrow">↓ 想要更客观的质量审查</span>
+<span class="label">第 30 天</span>  + Subagent（note-reviewer，开启 Persistent Memory）
+             <span class="arrow">↓ 持续使用，Memory 悄悄在积累</span>
+<span class="label">持续</span>      Auto Memory 越来越懂你
+             Reviewer 越来越准，Persistent Memory 在积累
+             CLAUDE.md 随着新问题的出现持续补充
+             <span class="note">整个系统越来越像你专属的 AI 搭档</span></div>
+
+<div class="callout green">
+  <strong>为什么这张图很重要：</strong>注意每一步都是"发现问题 → 升级工具"，而不是"提前想好所有场景 → 一次配齐"。试图在第一天就搭出完美配置，往往会配出一堆用不上的复杂性。最好的起点是最简单的可以工作的版本，然后让真实使用告诉你哪里需要加强。
+</div>
+
+<hr class="section-break">
+
+<h3>真正让 Claude 成为专属助手的，不是配置文件</h3>
+
+<p>工具是死的，用法是活的。CLAUDE.md 只是一个文件，Skills 只是一堆 Markdown，Hooks 只是一些 shell 命令——它们本身没有任何魔力。</p>
+
+<p>真正让这套系统有价值的，是<strong>你在使用过程中不断观察、调整、补充的行为</strong>：你发现 Claude 做错了就纠正，Claude 学到了就记下来；你发现某件事总是漏就加 Hook，发现某个方法可以复用就封装成 Skill。每一次这样的迭代，系统就更懂你一点。</p>
+
+<p>这不是一个可以"配置完成"的系统，而是一个随着你们合作深入而持续进化的关系。<strong>一年后你的 CLAUDE.md，会比今天的版本精准得多——不是因为你更懂工具了，而是因为你们一起工作了一年。</strong></p>
+
+<div class="callout" style="margin-top:28px;font-size:15.5px;line-height:1.9;border-left-width:4px;">
+  <strong>一句话收尾：</strong><br>
+  工具是死的，用法是活的。真正让 Claude 成为你的专属助手的，不是配置文件，而是<em>你和它一起工作的过程</em>。
+</div>
+
+</div>
+
+</section>
+
+<footer>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">学习资料</div>
+      <div>1. Anthropic Courses — Claude Code 101</div>
+      <div>2. Learn Claude Code</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em;">笔记创作</div>
+      <div>Nina &amp; Claude</div>
+      <div>2026-05-03</div>
+    </div>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script>
+const links = document.querySelectorAll('.sidebar a[href^="#"]');
+const sections = [...links].map(l => document.querySelector(l.getAttribute('href'))).filter(Boolean);
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const active = [...links].find(l => l.getAttribute('href') === '#' + e.target.id);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
